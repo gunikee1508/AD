@@ -1,0 +1,227 @@
+O active directory é como uma biblioteca, onde caso vc quisesse pegar um livro, ficasse tudo organizado, sabendo tudo, onde se encontra cada livro, cada seção, etc. Ele armazena informaçoes sobre as entidades de usuarios, pcs, entre outros serviços, etc. 
+
+///////
+
+GRUPO DE TRABALHO X DOMINIO -
+- Sempre que instala um windows, ele entra num grupo de trabalho; Todas as máquinas dentro de um grupo de trabalho poderiam compartilhar informaçoes entre si, como compartilhamento de pasta. No servidor (server manager) do windows, ela tb ta em um grp de trabalho, q poderia alterar se quisesse;
+
+Ex: se eu quisesse instalar um office em máquinas, no grupo de trabalho eu teria que criar máquina por máquina (conectadas por um switch). Com um domínio, tenho um active directory, no qual eu instalo o office nele e, consequentemente, é instalada nas outras máquinas. A vantagem do grupo de trabalho é que é mais barata, ja q nao precisarei ter servidor. Porém é um trabalho grande pro administrador de rede; já com dominio, é necessidade ter um servidor pra q eu gerencie todas as máquinas; o ideal com um domínio é ter um servidor espelhado para que, se eu perder esse servidor, nenhuma dessas máquinas que tão no servido terão acesso ao dominio; e se o servidor que é o controlador de dominio não tiver online, as máquinas conectadas não terão acesso; com grupo de trabalho é mais barato, mas se eu tiver 100 usuarios, terei q cadastrar os 100 pcs. com dominio, crio a 100 no Servidor e ela vai para as máquinas. o servidor num dominio pode ser o proprio windows server; 
+
+AD- 
+Banco de dados para armazenamento dos objetos do dominio;
+Os controladores de domínio (DC) hospedam esse banco de dados;
+Os computadores do dominio confiam nas informaçoes presentes no AD;
+
+A estrutura do AD deve respeitar uma estrutura de nome;
+Ex:
+
+minhaempresa.local -> Domínio raiz
+filial2.minhaempresa.local - Domínio filho
+filial1.minhaempresa.local - Domínio filho
+
+Posso ter outro domínio raiz também, mas pertencente as configuraçoes do dominio raiz
+Na estrutura, temos o que chamamos de árvore.
+No exemplo, temos uma árvore que é a minhaempresa.local (com seus 2 dominios filhos filial2.minhampresa.local e filial1.minhaempresa.local)
+E temos outra árvore, que é a minhaempresa2.local, que tem seus filhos (no exemplo so tem 1 filho: filial1.minhaempresa2.local), porém esta 2 arvore pertence as configuraçoes do dominio raiz. 
+E temos a FLORESTA, que é o DOMINIO RAIZ. No caso, sempre q criamos o primeiro dominio, ela será a floresta. 
+
+PROMOVENDO MEU SERVIDOR A UM CONTROLADOR DE DOMÍNIO:
+
+Sua floresta e seu servidor de dominio serão configurado com base no servidor mais antigo que tiver (se numa floresta tiver um dominio com servidor usando Win Server 2008 e outro com dominio com servidor do win server 2016, a floresta tera como nivel funcional da floresta e do dominio o de 2008, q sera a partir dele). Isso só vale para active directory, se for servidor de arquivos não vale; 
+
+-> Não é aconselhado o uso de dominios externos para uso de dominio local (ex.: empresa.com.br como uso de dominio raiz);
+
+O nivel funcional da floresta (em Opções do controlador de domínio) atende as máquinas que possuem o active directory instalado; 
+
+Como minha máquina atual tbm vai ser controlador de dominio, interessante ser tbm servidor de sistemas de nomes de dominio (DNS); (colocar DNS na hora das opçoes do controlador de dominio).
+
+Ativar o RODC (Controlador de dominio somente leitura) nao ia permitir q criasse novos usuários no servidor, so iria ler o dominio principal; 
+
+Senha do DSMR (modo de restauraçao dos serviços de diretório) é a senha caso o servidor tenha alguma pane:
+
+Definir nome de dominio NetBIOS (netBIOS é um protocolo de comunicação entre as máquinas); normalmente o nome dominio netbios recebe a primeira parte do nome do dominio (nome do meu dominio é empresa.local, então nome de dominio netbios vai ser aqui 'EMPRESA').
+
+Após reiniciar, verá que vai estar logando no usuario 'ADMINISTRADOR' dentro do domínio 'EMPRESA';
+
+///////////
+
+Unidades Organizacionais -
+Com o AD instalado, veremos como é o gerenciamento dos usuários, etc; 
+
+Em ferramentas > central administrativa do active directory, posso aí acessar o AD; outro lugar onde posso gerenciar usuarios é em Ferramentas > Usuários e Computadores do Active Directory; 
+
+Em usuários e computadores do AD, ali temos 'empresa.local', que é meu domínio. Na pasta 'computers', são as máquinas que estão no domínio. Porém, o servidor também pertence ao dominio (se ir em 'servidor local', vai estar lá q ele é do domínio 'empresa.local'), essa máquina de servidor é um DOMAIN CONTROLLERS, e lá estará 'SERVIDOR1'. Temos também a pasta padrão 'Users', onde temos ali os usuários padrões do AD, dentre eles, eu (o Administrator). Posso criar usuario na pasta 'Users'? Sim, a questão é só organização. 
+
+Se eu quiser por ex, q os usuarios de uma empresa q são do setor de venda, compartilhem pastas especificas, ou tenha um papel de parede específico, ou installe 'office' somente naquele setor. É interessante então q eu organize esses usuarios. Vou no domínio, no caso, 'empresa.local', botao direito > novo > Unidade Organizacional. Dou um nome. Botei de 'VENDAS'. 
+
+Pode proteger de exclusao acidental. Se marcar, para excluir a pasta terá que ir em "Exibir" > Recursos Avançados. Dou botão direito na unidade organizacional criada, no caso, 'VENDAS' > Propriedades > Objeto > Desmarca a opção proteger contra exclusao acidental. 
+
+Criei outra unidade organizacional agora chamada 'Adm', de setor administrativo. 
+
+Por padrão, dentro do 'vendas' vou criar os usuarios do 'Vendas'; Só que o ideal é que no grupo/unidade organizacional 'vendas' eu armazene as máquinas pertencentes ao grupo/unidade organizacional 'vendas', pois futuramente faremos politicas de grupo e existem politicas de grupo especificas para usuarios e para máquinas (PCs); 
+
+Por padrão, qd se cria um usuario ele vai para a pasta 'Computers', mas quero que vá para a unidade organizacional 'Vendas'. como fazer?
+Criemos 2 unidades organizacionais dentro de 'Vendas' e dentro de 'Adm': 'Computadores' e 'Usuários'.
+
+--------------
+
+Criando um novo usuário -
+Na unidade organizacional 'usuarios', botao direito > novo > usuário
+
+'nome de logon do usuário' -> normalmente sao os padroes da empresa. ex: primeironome.segundonome; não posso ter dois com o mesmo nome de logon no dominio; 
+
+a senha posso colocar regras, tipo se o usuario so vai entrar na empresa semana q vem, posso criar mas ativar o 'conta desabilitada', para q qnd ele chegar eu apenas o habilite. 
+
+Usuário criado. 
+
+Agora, eu vou estar ingressando a maquina neste dominio. Devo colocar a máquina no dominio 'empresa.local'. Ela está no grpo de trabalho 'WORKGROUP'. Entraremos na máquina acessando o 'windows 10' agora no virtualbox. 
+
+///////////////////////////////////////
+
+Adicionando uma maquina ao domínio - 
+No momento, a máquina de Win10Pro que instalei, está no grupo de trabalho WORKGROUP, tenho q colocar no dominio 'empresa.local'. Para isso, tenho configuraçoes de IP para fazer nesta máquina e as configurações de DNS: quem é o servidor DNS dessa máquina? 
+
+Na mh máquina virtual Win10Pro, tbm temos 2 adaptadores de rede, um em modo bridge pra pegar o IP da maquina hospedeira, e outra em NAT. A primeira placa de rede, tenho q colocar ela na mesma faixa de IP do meu servidor, ou seja, 192.168.100.x (obviamente q nao seja 100.10, q é o IP do meu servidor). Coloquei manualmente o endereço IP como 192.168.100.50; meu endereço de servidor DNS tem que ser o mesmo do meu ACTIVE DIRECTORY, isto é, 192.168.100.10; Se eu tivesse um servidor espelhado, poderia colocar em 'Servidor DNS Alternativo'. 
+
+P/ confirmar, vou no windows server (servidor), vejo o IP lá. O servidor DNS tem que ser ele mesmo, ou seja, tem que ser: '127.0.0.1', ou '192.168.100.10'; 
+
+Para confirmar, pinguemos no Win10Pro máquina: ping 192.168.100.50 -> passou; agora pinguemos o servidor pelo nome: ping servidor1 (vai resolver o nome) -> vai dar certo e pingar pelo IPV6. Se não encontrar o ip na hora de pingar pelo nome, ele nao ta resolvendo o nome; 
+
+Vamos agora mudar o nome da máquina do Win10pro. É importante q, numa empresa grande, vc nomeie as máquinas por departamento:
+Ex: a máquina win10pro pertence ao departamento 'Adm', então ela vai ser 'Adm1', isto é, maquina 1 do Adm, etc... 
+Alteremos, também, o domínio. Coloquemos: 'empresa.local'; Lembrando q para alterar, propriedades do meu computador -> config avançada do sistema > nome do computador > alterar > altere o nome do pc e o dominio. 
+
+Ao ingressar no dominio 'empresa.local', ele pede o usuário; Qualquer usuário do domínio tem permissão para colocar 10 máquinas no domínio (permissao padrao, podemos alterar; nao necessariamente é o administrador);
+
+Ao reiniciar, entremos com um usuário diferente, isto é, vamos entrar com um usuario que tenha no domínio EMPRESA; coloquemos o nome de logon do usuário e a senha (do usuário q criamos em 'Adm') do usuario q tem no dominio; ao logar, vai criar para esse usuario uma conta de usuario na máquina; agora chequemos no servidor se a máquina foi inserida no meu diretorio de Máquinas (Computers);
+
+Por padrão, a máquina (ADM1) foi para 'Computers', mas o ideal era que ela pertence a unidade organizacional 'Adm', entao o ideal é que ela fosse para 'Computadores' em 'Adm'. No momento, dou CTRL+X na máquina em 'Computers' e coloco em 'Adm > Computadores'; 
+
+/////////////////
+
+Removendo usuário local -
+Qd criamos a máquina (qd falamos isto, é a de Win10Pro), criamos um Usuário, o qual tem privilégio de administrador, ou seja, esse usuario ainda ta na maquina; algumas empresas usam usuarios locais com permissao de administrador para realizar manutençoes (apagar programas, etc); e se eu nao quiser um usuario local? o usuario pode descobrir a senha... 
+
+Entremos com o 'Administrator' na máquina, vamos em gerenciar contas de usuario no painel de controle, e lá terá o usuário que cadastramos na instalação do windows 10 pro na maquina. Ele faz parte do grupo administradores. No ex q tamo fazendo, é 'Luiz'. Apagando ele, nao teremos mais usuarios locais, apenas usuarios do dominio poderão acessar a máquina; 
+
+///////////
+
+Senhas sem complexidade -
+Digamos que teremos uns vendedores ficarão breve periodo de tempo na empresa, 1 semana, 1 mes... criaremos um logon com uma data para expirar para q ele nao consiga logar apos o termino do contrato; Digamos q queremos liberar tbm pro usuario senha facil, tipo '123'; Podemos fazer isso individualmente ou para grupo de usuários; 
+
+Criemos um novo usuario dentro de 'Vendas'. nome de logon dele será 'convidado1', e nome João Martins. senha dela: @12345J
+quero tb que essa conta tenha uma data para expirar:
+propriedades > conta > vencimento da conta.
+
+e quero que tbm se o usuario quiser colocar '123' de senha, coloque. para isto:
+
+Ferramentas > Central Administrativa do Active Directory.
+
+ali temos ali o dominio 'empresa (local)', ao clicar nela mostra as unidades organizacionais, temos ali 'Adm', 'Vendas', etc... 
+para senha sem complexidade, abra a pasta 'System', depois 'Passwords Settings Container', na direita vou em 'Novo' e 'Configuraços de senha'. vamos criar um novo perfil de configuraçao de senha. 
+'nome' é o nome da configuraçao; 'precedencia' -> quanto menor a precedencia, mais o perfil vai sobrepor a outros perfis; se no perfis eu tiver precedenciais iguais, vai valer a menor; 'impor historico de senhas' é que ele nao pode repetir a senha x vezes (o numero q vc colocar); tem outras configuraçoes lá tbm...
+
+apos configurar, clica em 'adicionar', e o nome do objeto será 'convidado1', que é o novo usuario que criamos, basta digitar 'convidado' e clicar em 'verificar nomes', como so tenho ele, vai aparecer somente ele; 
+
+se quiser remover o perfil, so botao direito > propriedades > desmarcar exclusao acidental, e excluir. 
+
+agora, vou em 'Vendas' pela central administrativa do active directory, vou em 'novo' na parte da direita e vou em 'usuario', e ali tenho todas as opçoes de forma mais completa; criamos a 'Maria da Graça', logon UPN do usuario (é o logon do usuario); ao abaixar verá 'configuraçoes de senha diretamente associadas', vou em 'atribuir' > digito o nome do perfil ali que salvei (foi Senha sem Complexidade, basta colocar 'senha' e em verificar nomes q ele ja seleciona pra mim) > OK.
+
+O usuario, ao clicar, estara inativo. redefino a senha e clico em 'HABILITAR'.
+
+agora, ao logar na maquina (win10pro), poderá logar com convidado1 ou convidado2.
+
+assim posso setar senha sem complexidade para um usuario ou para um grupo de usuários; 
+
+////////////////
+
+Senhas sem complexidade aplicadas a um grupo - 
+Criemos um grupo: 
+No AD, vamos a 'usuarios e computadors do active directory':
+Vendas > Usuarios > Botao direito > Novo > Grupo
+
+Geralmente, qd criamos grpo ja colocamos automaticamente 'GRP', para que quando localizemos o grupo, nao venha o nome de usuario juntos. o 'GRP' vai indicar que é um grupo de usuários; 
+Colocamos nome: GRP_SenhaSimples
+Escopo do grupo será 'global', ou seja, para todos os sites do meu dominio (no caso, ate agora, so temos o dominio raiz); E é tipo de grpo de segurança, geralmente 'distribuição' é para e-mail. 
+
+Agora posso adicionar usuario a um grupo ou pegar o grupo e adicionar usuario.
+
+Para adicionar, seleciona os usuarios > botao direito > adicionar a um grupo. Verifica nomes que comecem com 'GRP', como so tenho um grupo, achou o 'GRP_SenhaSimples'.
+
+Para ver os membros do grupo, botao direito em cima do grupo > propriedades > membros > ali estao os usuarios, e posso adicionar/remover 
+
+Na central administrativa do AD tb consigo, basta ir ali na direita, 'novo', e selecionar 'grupo'; 
+
+Outra maneira tbm é: 
+Pra selecionar um perfil para um grupo que neles tem usuarios, basta ir no password settings, vou no perfil que criei > propriedades > adicionar em (aplicar diretamente a) e seleciono o GRP que criei; 
+
+////////////
+
+Lixeira do Active Directory -
+Qq usuario q vc excluir do seu dominio, não poderá ser recuperado; P/ adicionar dnv, terei q recriá-lo; Um dos recursos recentes é a lixeira do AD, mas precisa ativá-la primeiro; 
+
+No centro administrativo do AD, vai no seu dominio [empresa(local)] e na direita aparecerá 'habilitar lixeira'; Depois que habilitar a lixeira, nao tem como desabilitar; 
+Se eu tiver servidores espelhados/controladores de dominios adicionais, para lixeira funcionar demorá certo tempo, ou seja, até q todos servidores estejam atualizados, a lixeira nao estará funcionando; como eu so tenho o controlador de dominio empresa.local, será ativo normal; 
+
+Apago um usuário agora; No raiz do dominio, atualizo, e terá 'Deleted Objects', lá estará os usuários deletados; Botao direito > propriedades > restaurar, agora o usuário voltará para onde estava.
+
+////////////////
+
+Criando usuários via PowerShell -
+Será util para quando eu tiver 100/200 usuarios para criar... 2 coisas: o local onde será criado o usuario e de que forma eu vou indicá-lo; 
+
+Primeiro, tenho q ver o caminho dos usuários, la na unidade organizacional 'usuários' dentro de 'vendas'.
+Agora, no powershell do servidor, colo o codigo:
+ New-ADUser -name 'Sebastião Salgado' -SamAccountName sebastiaosalgado -UserPrincipalName sebastiaosalgado@empresa.local -Path "OU=Usuários,OU=Vendas,DC=empresa,DC=local" -AccountPassword (ConvertTo-SecureString -AsPlainText 'Senha123' -force) -Enabled $true
+
+em que 'SamAccountName' é o nome de logon; 'userprincipalname' é o nome completo do usuario, onde o padrão é: 'SAMACCOUNTNAME@NOMEDODOMINIO'; e o -path é o caminho, onde 'OU' é o nome da unidade organizacional, 'DC' nome do controlador de dominio; e para criar a senha tenho q forçar um string seguro; 
+
+ao ver as propriedades do usuario q criei, verá q tem coisas que nao setei, como sobrenome, etc. para isto, basta ir na documerntaçao do site sobre o comando 'new-aduser', e terá todas os parametros; 
+
+/////////////
+
+Criando uma grande quantidade de usuários via arquivo csv-
+csv é a extensão do excel; na planilha baixada tenho o nome do usuario, PrimiroNome, Sobrenome, email (em que é o nomedelogon@dominionoqualousuarioserácriado), conta (nome de logon) e unidade organizacional onde o usuário será criado. 
+
+No userad.csv vai ter todas essas informaçoes, q é da onde vou tirar a fonte para criar todos os usuários; 
+nesse estilo é o 'userad.csv':
+NOME            PRIMEIRONOME    SOBRENOME   EMAIL                       CONTA           OU 
+Debora Assis    Debora          Assis       deboraassis@empresa.local   deboraassis     OU=Usuários, OU=Vendas, DC=empresa, DC=LOCAL 
+
+OBS: n importa se 'local' está maiusculo ou minusculo; 
+
+colei o 'userad.csv' na área de trabalho do win server. 
+
+abro o powershell no winserver e executo o comando:
+
+Import-Csv -Path Desktop\UserAd.csv | ForEach-Object {New-ADUser -name $_.nome -DisplayName $_.nome -SamAccountName $_.conta -UserPrincipalName $_.email -Path $_.ou -AccountPassword (ConvertTo-SecureString -AsPlainText 'Senha123' -force) -Enabled $true -ChangePasswordAtLogon $true}
+
+agora, no 'usuarios e computadores do active directory', vai criar dentro do que foi informado em 'OU' no arquivo .csv, no caso, vendas e adm, os usuários; 
+
+////////////
+
+Restringindo logon em horários determinados -
+digamos que: 
+os usuarios da unidade organizacional 'adm' so podem logar entre as 8h e 22h; posso aplicar politicas de grupo a todos usuarios de uma vez so; mas pode ser q se tenha caracteristicas individuais; por ex, pode ser que um usuario so acesse na terça e quarta-feira; 
+
+vai no usuarios e computadores do ad. procura o usuario. propriedades do usuario > 'conta' > 'horario de logon'; ali defino quais horarios e dias ele pode logar ou não; 
+
+/////////////////
+
+Restringindo logon em máquina -
+
+Indo em 'ferramentas' > 'DNS' > Zonas de pesquisa direta' > 'empresa.local' (que é o nome do meu dominio) > teremos quais máquinas estao no meu dominio e o nome delas. terá lá o 192.168.100.50, q é minha máquina Win10Pro ADM1.s
+
+Se eu quiser que um usuário possa logar apenas na máquina 'adm1', ou nas máquinas que eu indicar. 
+
+Vou no usuario > propriedades > conta > fazer logon em > os seguintes computadores:
+ai coloco o nome da maquina que o usuario pode acessar (netbios ou dns), ex: ADM1
+isto é para usuario específico, para fazer mais usuários teriamos que fazer via GPO; 
+
+Importante verificar os DNSs e os nomes; 
+
+Se eu colocar lá 'SERVIDOR1', e tentar logar na máquina 'ADM1' com o usuário que setei, dará erro; 
+
+//////////////
+
+Pasta compartilhada:
