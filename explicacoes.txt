@@ -181,7 +181,7 @@ ao ver as propriedades do usuario q criei, verá q tem coisas que nao setei, como
 /////////////
 
 Criando uma grande quantidade de usuários via arquivo csv-
-csv é a extensão do excel; na planilha baixada tenho o nome do usuario, PrimiroNome, Sobrenome, email (em que é o nomedelogon@dominionoqualousuarioserácriado), conta (nome de logon) e unidade organizacional onde o usuário será criado. 
+csv é a extensão do excel; na planilha baixada tenho o nome do usuario, PrimeiroNome, Sobrenome, email (em que é o nomedelogon@dominionoqualousuarioserácriado), conta (nome de logon) e unidade organizacional onde o usuário será criado. 
 
 No userad.csv vai ter todas essas informaçoes, q é da onde vou tirar a fonte para criar todos os usuários; 
 nesse estilo é o 'userad.csv':
@@ -225,3 +225,794 @@ Se eu colocar lá 'SERVIDOR1', e tentar logar na máquina 'ADM1' com o usuário que
 //////////////
 
 Pasta compartilhada:
+Eu quero que, no meu servidor, o usuário tenha um local onde ele possa armazenar suas informaçoes, alem da sua maquina física, quero q tenha também um local centralizado onde ele possa armazenar os arquivos e possa compartilhar os arquivos com outros usuarios ou não; quando falo em compartilhamento, é compartilhamento geral, e não especifico para um usuário; 
+
+- é ideal q eu tenha um disco separado para o compartilhamento de arquivos, não é ideal fazer o compartilhamento no mesmo disco onde tenho meu sistema operacional, nem mesmo em outra partição do mesmo disco; ideal é um disco fisico separado para este compartilhamento; pois se eu perder meu servidor, perco meu servidor de arquivos e perco meu AD também; ideal é q eu tenha diferentes serviços em diferentes máquinas;  
+
+- criei uma pasta no C:\ do servidor chamado 'Publica' (n é indicado, lembrando), e todos os usuarios terão acesso a ela; 
+
+Propriedades da pasta q criei > compartilhamento > compartilhamento avançado > marcar opçao compartilhar a pasta. 
+
+tenho as opçoes ali que quiser, em 'permissoes' tenho as permissoes pra os usuarios, em 'everyone' tenho pra todos; o caminho 'everyone' significa q é publico, todos terão acesso, inclusive os usuarios que não estão no meu domínio, mas que esteja na mesma faixa de IP;
+
+salvei;
+
+na minha maquina ADM1 agora (win10pro), vou no caminho do explorador de arquivos e digito '\\SERVIDOR1\' (q é o nome do meu servidor); vai aparecer lá a pasta 'Publica' que criei. terão outras pastas padrões também, como a 'SYSVOL', q é onde tem os scripts de inicialização, e o 'netlogon';
+
+Indo no servidor, e indo em um usuario, por ex, algum usuario de 'VENDAS', no caso fui no Carlos Gomes, posso ir nas propriedades do usuario q eu quiser, vou em 'perfil' e posso definir um 'caminho local', q seria um caminho no proprio disco dele; se ele tiver uma pasta chamado 'compartilhado', posso indicar aqui: 'C:\Compartilhado'; não é nosso caso; vamos em 'conectar', definir uma unidade, ex: 'X:', e o texto ao lado será onde será compartilhado., no caso: "\\SERVIDOR1\Publica", aplico e dou 'ok'; 
+
+lembrando q como configurei antes, todos poderão visualizar e alterar os arquivos na pasta. 
+
+agora, ao entrar no PC 'VENDAS1' com o usuario 'carlosgomes', verá q terá a pasta compartilhada com a unidade 'X:' q defini mostrada no 'Meu Computador'; mas uma maquina do 'ADM1' com usuario de lá ainda poderá acessar e modificar (colar arquivos, tirar etc), acessando '\\SERVIDOR1\Publica'
+
+/////////////////////
+
+PASTA COMPARTILHADA (COMPARTILHAMENTO RESTRITO POR USUÁRIO)
+Quero uma pasta específica para o usuário. Somente um usuario possa acessar e alterar as informações; 
+
+1o - não vou criar uma pasta compartilhada a todos os usuarios visiveis do meu dominio; quero sim q ela seja compartilhada, mas oculta; 
+crio nova pasta no servidor, no 'C:', chamada 'Pasta Base.' > Propriedades > Compartilhamento > Compartilhamento avançado > Compartilhar a pasta > no nome do compartilhamento coloco o $ no final para a pasta ficar oculta, ficando 'Pasta Base$'. Agora vou em 'permissões', removo o 'Everyone' (pois o everyone é para todos os usuarios inclusive os que não estão no dominio); clico em 'adicionar', e digito o nome para verificar 'Domain', e verifico, vai aparecer vários 'Domain', a pasta tem q ser compartilhada para o 'DOMAIN USERS', ou seja, os usuários do domínio; dou ok, e os usuarios do dominio terão controle total de permissão; 
+
+ao acessar a maquina ADM1, e tentar acessar '\\SERVIDOR1', verá que não irá aparecer o 'PASTA BASE', a nao ser q acesse direto pelo caminho: '\\SERVIDOR1\Pasta Base$'; se não souber o caminho, nao visualiza o compartilhamento; já está oculto, por causa do $.
+
+Dentro da pasta base, cada um dos meus usuarios do meu dominio terá uma pasta especifica para o usuario; 
+
+- Todos usuarios do dominio poderão acessar o pasta base, mas apenas os usuarios que criarem pasta dentro do pasta base poderá acessar a pasta que criou:
+No servidor, Propriedades de PastaBase > Segurança > Avançadas > (entenda que, qualquer pasta que eu criar dentro do PastaBase, vai herdar as permissões do PastaBase. no pastabase tenho permissao total, mas não é isso que eu quero, quero que o dono dessa pasta tenha permissao total sobre ela) > Desabilitar herança > converter as permissoes herdadas em permissoes explicitas no objeto (vai ter permissao especifica) > vou deixar permissao somente para o system, administrador e creator owner (quem criou a pasta) para ler e escrever; para isto, removo os 'Users' > aplico e ok; 
+
+- agora, vamos indicar uma pasta específica para um usuario no meu dominio:
+usuarios e computadores do Active directory > vou no usuario, no caso, ex, vou no carlos gomes > no conectar, ele ja tem um compartilhamento q definimos antes, q no caso é o 'publica', neste caso, so consigo especificar um compartilhamento a ele, oq é um problema. vou trocar para pasta base indicando que a pasta do usuario terá o nome dele, usando variavel do sistema. ficando:
+\\SERVIDOR1\Pasta Base$\%username% -> username deve ser substituido pelo nome de logon do usuario; 
+
+reinicio a maquina logada no carlosgomes, logo com ele; vai aparecer lá a pasta base$ com o nome do usuario; 
+
+no servidor agora, vou na 'Pasta Base', e tem q ter lá a pasta escrita 'carlosgomes' e o arquivo dele; 
+
+- E para outros usuarios? como seria o compartilhamento?
+vou em outro usuario, agora no ADM1, ex: alberto > propriedades > perfil > conectar > unidade q quero e coloco: '\\SERVIDOR1\Pasta Base$\%username%'
+
+agora, dentro do usuario alberto, ao tentar acessar o caminho '\\SERVIDOR1\Pasta Base$', não conseguirei acessar, pois terá outras pastas nela, em que possuem outros donos; 
+
+/////////////////
+
+Script de Inicialização -
+Agora, vamos supor q o usuario fuja do padrão, além de compartilhar a pasta 'Pasta Base', vai compartilhar tbm a pasta 'Publica'; se for a mesma pasta para todos os usuarios dentro da unidade organizacional 'ADM', a gente faria politica de grupo (veremos mais a frente) e diriamos: todos usuarios do ADM terá a pasta Base como compartilhamento e também mais uma pasta, ou 2/3... mas e se o usuario tiver um compartilhamento especifico, alem dos compartilhamentos padrões? O jeito para isto é criar um script de inicialização. Ou seja, assim, qd o usuario fizer o logon, será chamado um arquivo que irá indicar os compartilhamentos que ele tem. 
+
+- Criaremos nosso script de logon no servidor, será em formato texto. crio um arquivo no bloco de notas. usaremos comando do CMD. o comando para criar compartilhamento de rede é 'net use UNIDADELETRA CAMINHODEREDE'
+no nosso caso, será:
+net use Z: "\\Servidor1\publica" 
+net use X: "\\Servidor1\Pasta Base$\%username%" 
+
+OBS: Caso no caminho alguma pasta tenha 'espaço', coloque aspas no caminho. 
+
+o 'net use X: \\Servidor1\Pasta Base$\%username% ' será para a pasta especifica. 
+o arquivo de texto deverá estar salvo numa pasta especifica q é compartilhada pelo sistema, q é a pasta chamada 'scripts', em:
+
+C:\Windows\SYSVOL\sysvol\empresa.local\scripts 
+
+será salvado como nome: 'script.bat', q é uma serie de comandos e será executado em sequencia. 'empresa.local' do caminho é o nome do meu dominio. 
+
+e como indico quais usuarios irão executar o SCRIPT?
+em usuarios e computadores do 'active directory', vou num usuario qualquer, vou no alberto > propriedades > perfil > script de logon: script.bat. não preciso indicar o caminho; 
+
+agora, ao logar no alberto, irá aparecer lá a pasta 'publica' e a pasta do usuario que fica na pasta base; 
+
+//////////////
+
+Adicionando um novo servidor ao domínio -
+Criamos nova maquina de windows server 2022; mudo nome dela para 'SERVIDOR2'; IP dela será 192.168.100.11 (visto q o SERVIDOR1 é 192.168.100.10); coloco o DNS 192.168.100.10, para o SERVIDOR2 poder entrar no domínio empresa.local; tente pingar, do SERVIDOR2, o servidor1 pra ver se ta tudo certo: ping 192.168.100.10;
+
+entro no dominio empresa.local agora (onde muda nome do servidor para SERVIDOR2); reinicio e entro numa conta no dominio (logue em OTHER USER/OUTRO USUARIO para poder entrar no administrador do dominio EMPRESA, e nao no Administrator local ); 
+
+ao logar agora com o administrator do dominio no SERVIDOR2, verá q tará tudo certo; 
+
+agora posso administrar o servidor2 através do servidor1 (Exceto em casos especificos em que eu precise ir no SERVIDOR2);
+
+no servidor1, na minha tabela DNS agora terá o 'SERVIDOR2';
+
+vou no 'painel' do servidor1, vou em 'adicionar outros servidores para gerenciar'; localizo o 'SERVIDOR2', e jogo para a direita como selecionado;
+
+agora, caso eu queira instalar algum recurso, posso selecionar em qual servidor quero instalar, pode ser feito diretamente através do servidor1; 
+
+/////////////
+
+Controlador de domínio adicional -
+Não é aconselhavel que em uma estrutura grande q se tenha um controlador de dominio apenas, caso perca o AD ficará parado; o ideal é q se tenha mais de um servidor, espelhado, caso eu precise eu subir o 2o servidor, eu ganho tempo; 
+
+como adicionar um controlador de dominio adicional? 
+
+No SERVIDOR1: 
+adicionar funçoes e recursos > baseada em funçao ou recurso > seleciono o SERVIDOR2 > escolho o AD Domain Services;  > confirmo tudo e instalo.
+vou nas notificaçoes e vou em 'promover este servidor a um controlador de dominio existente'. seleciono 'adicionar um controlador de dominio a um dominio existente'; altero as credenciais de configuraçoes (coloco o Administrator do domínio);
+
+Seleciono DNS e o GC (catálogo global);
+
+opçoes de dns: vai espelhar;
+opçoes adicionais:
+é quem ele vai replicar; no caso, so tenho o controlador de dominio SERVIDOR1, mas vou deixar 'qualquer', pq vai que eu tenha um terceiro servidor futuramente; 
+
+instalo. instalaçao sendo feita no servidor2... 
+
+ao reiniciar o servidor2, indo em 'usuarios e pcs do AD', veremos q teremos lá os usuários.
+
+ao criar um usuario em 'adm' no SERVIDOR2, como teste, verá q o mesmo usuario tbm será criado no 'usuario' no SERVIDOR1; 
+
+se não aparecer, pode demorar um pouco, ai pra verificar, vc abre o POWERSHELL (no servidor1) e digita:
+
+- repadmin /showrepl
+
+e através desse comando vc ve se teve algum problema, se foi bem sucedida ou não.
+
+
+-> Util para servidor espelhado;
+
+/////////////////
+
+Testando a replicação -
+Agora q temos um servidor/AD reserva (replicado), caso eu perca o servidor1, o servidor2 vai assumir automaticamente? não.
+
+vejamos...
+na maquina de usuario, o DNS é 192.168.100.10, se esse servidor cair (servidor1), eu fico sem o AD, pois não vai conseguir resolver nomes; o servidor DNS alternativo poderá ser o 192.168.100.11 (q é o servidor2); mas e para resolver dns externo? tipo o Google... ai eu indicaria quem resolveria os nomes externos (ex.: 8.8.8.8); no caso, como não temos acesso a internet, poderemos deixar o 100.11 como alternativo; 
+
+vou lá no SERVIDOR1; config de ip:  o servidor DNS alternativo/secundario, será o 192.168.100.11; 
+
+agora, no SERVIDOR2, inverto as ordems do DNS. o preferencial será ele mesmo > 192.168.100.11, e o alternativo será o 192.168.100.10; isto pois se caso o SERVIDOR1, o SERVIDOR2 q terá q resolver a bronca, assumir o DNS dele mesmo; 
+
+agora, vamos testar. vamos derrubar o servidor1, desligue a maquina; vamos ver se o host (maquina) conseguirá resolver os nomes. 
+logaremos com um usuario q nunca entramos numa maquina (no caso foi do ADM1) para ter  certeza q nao entrará no cache; verá q vai logar;
+
+então esta é a soluçao caso o computador principal do dominio, trocar quem vai resolver os dominios -> ou eu deixo como DNS secundario o meu servidor2, ou eu via DHCP eu vou e troco quem é o servidor principal (veremos futuramente)
+
+///////////////
+
+GPO - Introdução
+
+Todas as regras aplicadas para o usuario ate agora foram feitas individualmente; pode ser exaustivo se tiver 300 maquinas no meu AD, para isto tem politicas de grupo para que eu possa aplicar regras a um grupo de usuarios (pode ser um dominio ou unidade organizacional). 
+
+No Servidor, vou em Ferramentas > gerenciamento de política de grupo > floresta: empresa.local > dominios > empresa.local > aqui tenho as unidades organizacionais e outros containers como o Domain Controllers (controladores de domínio). já existe uma política de grupo padrão (default domain policy), que aparece ali. esta politica de grupo está acima das demais unidades organizacionais, dessa forma, ela será aplicada a todas as unidades organizacionais. se tivessemos uma politica de grupo dentro de 'adm', seria aplicada a computadores ou a usuarios ou a ambos. dentro do 'vendas', seria dentro de 'vendas'. 
+
+existem politicas de grupo tanto para computadores quanto para usuarios. 
+
+botao direito no default domain policy > editar > verá q tenho politicas de grupo para "computadores" e para 'usuarios'; 
+
+atenção: se eu adicionei uma nova maquina ao dominio, por padrão a politica de grupo será aplicada ao 'computers', e ali estará a máquina. se a maquina 'VENDAS1' estivesse em 'computers' e nao em 'Vendas' (unidade organizacional), e eu fizesse uma politica de grupo para o 'Vendas' e eu fizesse uma politica de grupo para a máquina, não seria aplicado ao 'VENDAS1', pois ele estaria fora da OU 'Vendas', a não ser que eu fizesse uma politica de grupo para o dominio, ai seria aplicado. O ideal é então que todas as máquinas estejam organizadas nas suas devidas unidades organizacionais; 
+
+- Todas as políticas de grupo criadas são salvas na pasta 'SYSVOL' -> Windows/SYSVOL/sysvol/dominionomeucasoempresa.local/Policies
+
+cada politica ali terá um ID. 
+
+/////////////////
+
+Pasta compartilhada por GPO-
+
+No servidor, no C:, temos a pastabase e a pasta 'Publica'.
+
+Vamos criar uma GPO que ira compartilhar com todos os usuarios do dominio a pasta 'publica'. a 'Pasta Base' deve ser criada automaticamente qd o usuario logar, é pasta especifica do usuario; 
+
+Vamos no servidor, em Ferramentas > gerenciamento de política de grupo > dominios > empresa.local. crio com botao direito no dominio 'empresa.local' e escolho: 'Criar um GPO neste dominio e fornecer um link para ele aqui...'. Botei nome: 'Caminho de rede para a PUBLICA'. Criei a politica, botao direito nela e clico em 'Editar'; 
+
+A política de grupo que iremos criar será para o USUARIO, ou seja, independente da maquina que ele logar, se ele tiver permissao, claro, a politica de grupo será aplicada a ele.
+Vou em 'config do usuario' > preferencias > configurações do Windows > Mapas de Unidades, ai vou mapear uma unidade de rede. por isso nao funciona com a 'Pasta Base', pois para a 'Pasta Base' ela nao existe ainda, ainda nao foi criada; Vamos criar no 'Mapa de Unidades' a pasta 'Publica', que já temos. Botao direito > novo > unidade mapeada. posso criar o caminho de rede caso nao exista, posso 'substituir', posso 'atualizar', ou 'excluir' caminhos de rede criados nas maquinas. o ideal aqui é que eu 'atualize' -> se ele nao existir, crie; se ele existir, apenas atualize; 
+No 'Local', escrevo o caminho:
+Local: \\SERVIDOR1\Publica´
+
+Marco a opção 'Reconectar', a unidade coloco: 'X' (Atençao para nao ter outra unidade que esteja mapeada como X, para nao ter conflito). rotulo como 'Pasta Publica'; 
+
+agora, a unidade ja esta mapeada e já está criada a GPO. 
+
+agora, vou na maquina do usuario. faça logoff e login e irá aparecer a pasta compartilhada 'Publica'. ou, caso nao queira fazer logoff, abro o cmd na maquina do usuario e digito: 
+
+gpupdate /force
+
+agora, vai aparecer a pasta compartilhada 'Publica' para os usuarios, e nem indica o caminho, indica o nome que especifiquei, no caos, 'Pasta Publica'. 
+
+agora temos unidade mapeada para todos do meu dominio.
+
+////////////////
+
+Compartilhamento privado - 
+
+Agora, vou compartilhar uma unidade compartilhada mas somente para os usuários do 'VENDAS'. Quero que somente eles tenham a pasta compartilhada; porem, antes de eu criar a GPO, é importante tratar da segurança desta pasta; quero que somente os usuarios do 'Vendas' consigam visualizar e acessar esta pasta; 
+
+No servidor, vou em 'usuarios e computadores do active directory', vou na Unidade organizacional 'Vendas', vou em 'Usuarios' e crio um Grupo de Segurança: Novo > grupo > GRP_Vendas.
+
+Agora, para adicionar os usuarios do 'Vendas' ao grupo, seleciono todos os usuarios (com CTRL mesmo) de lá, botao direito > Adicionar a um grupo > GRP_Vendas (verifico e dou OK).  
+
+Para ter certeza se adicionou os usuarios ao grpo, botao direito no grupo > Propriedades > Membros, e lá verá os membros do grupo; 
+
+Vou compartilhar uma pasta, e neste compartilhamento, so vou dar permissao a um grupo de usuarios; quem não tiver neste grupo nao poderá visualizar tal pasta nem gravar informaçoes. 
+
+Crio pasta no C: do servidor, chamada 'Vendas'. Agora, claro, devo permitir compartilhar esta pasta. Botao direito > Compartilhamento > marcar compartilhar a pasta, e em 'nome do compartilhamento' coloco 'Vendas$'. Em 'permissoes' tenho ali 'Everyone', excluo ele e adiciono o 'GRP_Vendas'. 
+
+Agora, lá na minha GPO, eu tenho a politica de grupo 'Caminho de Rede para a Publica' a qual é aplicada para TODO MUNDO, inclusive para o pessoal de 'Vendas'; porém, na UO 'Vendas' não tenho GPO. Então, botao direito no Vendas > Criar um GPO neste dominio...
+
+Botei como nome> 'Caminho de Rede para a pasta Venda'. criei a GPO, botao direito nela, e edito ela... 
+Vou em configuraçoes do usuario > Preferencias > Configuraçoes do Windows > Mapas de unidade. Nela crio a UNIDADE MAPEADA. 
+
+Ação: atualizar
+Local: \\SERVIDOR1\Vendas$
+Reconectar: sim 
+Rotular Como: Pasta Vendas
+Unidade: Z:
+
+Os usuarios de 'vendas' vão receber as politicas de grupo aplicadas ao dominio e somente eles vao receber esta politica que acabei de criar. 
+
+ao logar num usuario de 'Vendas', verá que irá aparecer a pasta compartilhada 'Vendas'. 
+
+se logar num usuario de 'adm', não irá aparecer. se tentar acessar pelo caminho: \\SERVIDOR1\Vendas$ , dará erro. 
+
+///////////////////
+
+Pasta base (Observações) - 
+A pasta base do usuario que criamos, as vezes, não pode ser compartilhada via GPO; nem todos os usuarios possuem pasta pessoal, portanto, este recurso deve ser feito direto pelo AD, indo direto ao usuário no 'Usuarios e Computadores do active directory' > propriedades do usuario > perfil > pasta base > conectar > indico o caminho; 
+
+então, por exemplo, vou selecionar todos os usuarios da pasta 'ADM' > botao direito > propriedades > perfil > seleciono 'pasta Base', e conecto e indicando o caminho, no caso, será: \\SERVIDOR1\Pasta Base$\%username%
+
+dessa forma, vc aplica as pastas bases necessarias diretamente no AD, sem necessidade de usar as políticas de grupo; 
+
+////////////
+
+Proibir / liberar acesso ao painel de controle -
+Se eu tiver 50 unidades organizacionais no dominio? Vou criar uma politica em q sua maioria vai ser aplicada pra todos. 
+
+Botao direito no dominio empresa.local > criar GPO > nome: 'Proibir o acesso ao painel de controle'
+
+Botao direito em 'proibir acesso ao painel de controle' > editar > [será uma GPO aplicada ao usuario ] configuraçoes do usuario > politicas > modelos administrativos ... > todas as configurações > botao direito em 'proibir acesso ao painel de controle e às confiugraçoes do pc' > editar > marco o 'habilitado', dessa forma, nenhum usuario tera acesso ao painel de controle...
+
+- mas e se o pessoal do 'Adm' precisar ter acesso ao painel de controle?
+- dentro da UO 'Adm', botao direito > novo gpo > nome: 'Liberar acesso ao painel de controle' > editar a GPO que criei (botao direito e editar) >  configuraçoes do usuario > politicas > modelos administrativos ... > todas as configurações > botao direito em 'proibir acesso ao painel de controle' > marco a opção 'desabilitado' > para a GPO ter prioridade, botao direito nessa GPO e clico 'Imposto', assim esta GPO será imposta às demais GPOs.
+
+Agora, ao logar com um usuario de 'Vendas' na máquina, ao tentar acessar no painel de controle em algo, como o 'Personalizar', dará erro. 
+
+///////////////
+
+Desabilitar GPO para Administradores e/ou grupos de usuários - 
+
+Se eu não quiser que as políticas de grupo não sejam aplicadas a determinado usuário ou grupo de usuarios? 
+
+No gerenciamento de politica de grupo > clico em 'proibir acesso ao painel de controle' > 'Delegação' > quero que para o administrador o 'GPO' não seja aplicado, clico em 'Avançado' no inferior direita > clico em 'Adicionar...' > digito 'Administrator' e verifico nomes > vou selecionar o 'Administrator' > ok > seleciono 'administrator' em nomes de grupo ou usuario > e marco 'Negar' para 'aplicar políticas de grupo'. Ou seja, para o 'administrator', a politica de grupo será negada; 
+
+Para a politica de grupo 'Caminho da rede para a PUBLICA' faço a mesma coisa; 
+
+agora, o 'administrator' tem acesso ao painel de controle e nao tem mais a pasta compartilhada 'PUBLICA'; 
+
+//////////////////
+
+Papel de parede personalizado - 
+
+Terei 2 papéis de parede que serão usados para os usuarios do meu dominio, um para a UO 'Adm' e outro para a UO 'Vendas'; 
+
+Crio no C: do servidor uma pasta chamada 'Arquivos' > propriedades > compartilhamento > compartilhamento avançado > seleciono 'compartilhar a pasta' > nome do compartilhamento como 'Arquivos$' 
+
+transfiro as 2 imagens para a pasta 'arquivos'. verificar a extensão das imagens. 
+
+agora, crio a política de grupo para a unidade organizacional 'Adm'; Botao direito em 'adm' > criar gpo > 'Papel de Parede Adm' como nome. editar gpo > configuraçoes do usuario > politicas > modelos administrativos [...] > active desktop > botao direito em 'papel de parede da área de trabalho' > editar > marca 'habilitado' e em 'nome do papel de parede' indica o caminho, no caso: \\SERVIDOR1\Arquivos$\papel1.jpg > em 'estilo de papel de parede' seleciono 'ampliar'. 
+
+ao logar com um dos usuarios em uma das unidades organizacionais, verá q o papel de parede será aplicado; 
+
+////////////////
+
+Políticas de segurança e bloqueio de contas -
+Agora, faremos através da GPO. 
+
+As políticas de segurança e bloqueio de contas, por padrao, ja estão criadas no 'Default Domain Policy', entao o ideal é que eu altere pelo default domain policy, ou eu crio outra politica de grupo e faço com que ela seja realmente aplicada (colocar como Imposta); mas vamos fazer pelo 'Default domain policy'.
+
+botao direito nela > editar > configuraçoes do COMPUTADOR > politicas > config do windows > config de segurança > politicas de conta > politicas de senha > ali posso desabilitar/habilitar as politicas, mas seria pra todos os usuarios... tem a 'aplicar historico de senhas', q é em após quantas vezes trocar a senha ele pode usar a mesma senha, etc... vamos em 'POLITICA DE BLOQUEIO DE CONTA', botao direito em 'duraçao do bloqueio de conta' > definir esta configuraçao de política > conta bloqueada por '30' minutos q é o padrao, e apos vai mostrar umas opçoes, apos 5 tentativas de senha, vai bloquear por 30 minutos a conta... 
+
+'limite de bloqueio' vou trocar para 3, se errar 3 vezes, na 4o bloqueia.   
+
+agora, ao tentar acessar o usuario e errar 3 vezes, ao acessar na 4o vez irá bloquear, entre outras configurações... 
+
+a conta do usuario bloqueou, e agora?
+
+Vou na Central Administrativa do Active Directory > dominio empresa.local > vou na unidade organizacional do 'usuario' > usuarios > seleciono o usuario q bloqueou a conta > na direita clico em 'desbloquear' ou posso 'redefinir a senha' e seleciono 'desbloquear a conta'; 
+
+////////////////////
+
+Criando pastas locais e copiando arquivos por GPO-
+
+Digamos que eu tenha que criar uma pasta, em todos os hosts/terminais da rede e alem de criar, eu tenha que transferir para esta pasta eu tenha que transferir alguns arquivos, isto pode ser para instalar algum programa, arquivo de configuraçao para estes terminais, etc; 
+
+Vamos naquela pasta 'Arquivos' que temos no C: do servidor1, onde temos o 'papel1.jpg' e 'papel2.jpg'. digamos que alem de eu copiar a pasta quero copiar os 2 arquivos dentro.  certifique-se nas propriedades desta pasta que ta liberado 'compartilhar a pasta'; 
+
+Vou no gerenciamento de politicas de grupo, vamos aplicar apenas para a UO 'Adm', botao direito nela > criar GPO > nome 'Criar pasta e copiar arquivos' > editar esta GPO q criei > configuraçoes do usuario > preferencias > configuraçoes do windows > 'Pastas' > novo > 'Pasta' > 'Ação': atualizar, caminho onde será criada a pasta (será lá no usuario, no windows 10 pro): C:\Arquivos, 'OK'
+
+agora, vou em 'arquivos' > novo > arquivo > açao é 'atualizar' e 'arquivo de origem': \\SERIVODR1\Arquivos$\papel1.jpg e arquivo de destino: C:\Arquivos\papel1.jpg
+
+agora crio outro arquivo, arquivo de origem': \\SERIVODR1\Arquivos$\papel2.jpg e arquivo de destino: C:\Arquivos\papel2.jpg
+
+--------> os arquivos nao precisam ter os mesmos nomes, é somente ilustração; 
+
+agora, lá estará na maquina de algum usuario do 'Adm' a pasta 'Arquivos' com os arquivos 'papel1' e 'papel2' dentro; 
+
+//////////////////////
+
+Compartilhando impressoras por GPO - 
+
+Como eu adiciono uma impressora automaticamente às maquinas do meu dominio? 
+
+Vamos simular uma impressora. no servidor1, vou no painel de controle > hardware > configuraçao avançada de impressora > a impressora que eu quero nao esta na lista > se eu tivesse uma impressora poderia selecionar em 'selecionar uma impressora compartilhada pelo nome' o IP, etc, mas vou selecionar 'adicionar uma impressora local ou de rede usando configurações manuais' > avançar > vou usar a porta padrão de impressora q é a LPT1 > peguemos uma impressora generica, no caso, 'generic ibm graphics 9pin' > avançar o nome > compartilhar a impressora para que outras pessoas... e no local vamos colocar so pra organização 'SERVIDOR1' > avanço e ok..
+
+agora em 'impressoras' erei lá a 'generic ibm graphics 9pin'. botao direito nela > propriedades da impressora  > compartilhamento > seleciono as 3 opçoes e 'listar no diretório' pra que liste para mim > ok.
+
+agora quero criar a GPO q vai instalar a impressora a todos meus clientes. posso instalar a meu dominio inteiro ou a uma unidade organizacional específica. vou adicionar pro dominio todo
+
+gerenciamento de politica de grupo > botao dirieto no empresa.local > criar gpo > nome: 'Impressora Generic IBM Graphics 9pin' > editar > é uma politica de usuario, portanto > configuraçao do usuario > preferencias > config do painel de controle > impressoras > novo > 'Impressora Compartilhada' > seleciono açao 'atualizar' e caminho do compartilhamento posso indicar o caminho, mas como a impressora ta compartilhada, clico nos 3 pontinhos e seleciono em 'resultados da pesquisa' o 'SERVIDOR1-Generic IBM Graphics 9pin' > confirmo e verei q o caminho é \\SERVIDOR1\Generic IBM Graphics 9pin > OK.
+
+agora acesso algum usuario na maquina (seja do Adm ou de Vendas pois apliquei ao dominio todo) > e tento imprimir algo e verá q terei lá o 'generic ibm graphics 9pin em SERVIDOR1'
+
+/////////////////
+
+Definir horário de logon em lote e restringir logon em máquina por GPO - 
+Vimos antes o horario de logon e em quais maquinas o usuario pode logar...
+
+Posso especificar isto para vários usuários de uma vez só... 
+
+No 'usuarios e computadores do AD', eu poderia selecionar varios usuarios de uma unidade organizacional, botao direito > propriedades neles > e definir os horarios de logon; e em 'restriçoes do computador: fazer logon em' posso definir em quais maquinas os usuarios poderão logar, o ruim é q se eu tiver uma grande qtd de maquinas vou ter que ir colocando maquina por maquina; 
+
+Na UO 'Vendas' eu já tenho um grupo chamado 'GRP_Vendas', no qual tem todos os usuarios de 'Vendas'. Digamos que eu queira proibir os usuarios do GRP_Vendas de logar na maquina ADM1 da UO 'ADM', ai posso fazer isso via GPO.
+
+No gerenciamento de politica de grupo: 
+Na UO 'Adm', crio um GPO > 'Proibir acesso dos usuarios da UO Vendas' > editar > essa é uma configuraçao de maquina, portanto, configuraçao do computador > politicas > config do windows > config de segurança > politicas locais > atribuiçao de direitos de usuario > veremos que temos vários 'negar', o que eu marcar é o que irei negar, mas oq eu quero é 'negar logon local', isto é, negar o login, portanto, botao direito nele > propriedades > definir estas configuraçoes de politicas > adicionar usuario ou grupo... > procurar > procure por GRP_Vendas e verifique (já q é neste grupo q temos os usuarios) > dou 'OK'.
+
+Agora, pra eu ter certeza q essa politica de grupo será criada, botao direito nesta politica de grupo q criei > Imposto > dou 'OK'. 
+
+devo lembrar q essas maquinas devem estar dentro do 'Adm', pois é lá q estou dizendo, isto é, as maquinas na UO 'Adm' (em Computers) é q nao podem ser acessadas pelo grupo vendas (ou seja, usuarios que fazem parte deste grupo). 
+
+agora, quando algum usuario de 'vendas', q faça parte do grupo GRP_Vendas (todos fazem no caso), tentar acessar a maquina ADM1 (q é da UO ADM), dará erro...
+
+/////////////////
+
+Instalação de Software via GPO -
+
+E se eu precisar fazer uma instalação do Chrome a todas máquinas do meu dominio?
+Para instalaçao via GPO, geralmente tem um pacote proprio para isto, geralmente é com a extensão .msi, q é do 'msi installer'
+
+procure pelo google: 'google chrome msi installer'
+
+(coloquei o putty.msi q é oq tinha na maquina so por teste)
+
+coloco o operagx.setup na pasta 'Arquivos', dentro da pasta 'Installers' (criei a pasta e coloquei o arquivo dentro)
+
+é ideal q, qd eu faça instalaçao via GPO, eu faça via grupos (no caso, UOs); como mnh estrutura aqui é pequena, vou atribuir para todas as UOs que tenho, entao vou criar a instalaçao no dominio, inclusive nos servidores. 
+
+gerenciamento de politica de grupo > botao direito no dominio 'empresa.local' > criar GPO > nome 'instalar Chrome' > editar > politica de grupo aplicada a maquina, pq é instalada na maquina, entao configuraçoes do computador > politicas > configuraçoes de software > instalaçao de software > botao direito e novo > 'pacote' > no caminho indico onde está a pasta dos arquivos para instalar, no caso, \\SERVIDOR1\Arquivos$ , seleciono a pasta 'Installers' e seleciono o 'chrome.msi' > seleciono 'atribuido' > 'ok'.
+
+Para eu ter certeza que essa GPO 'instalar chrome', botao direito > propriedades > 'imposto'. 
+
+agora, so dar "gpupdate /force", logar na maquina de usuario (no caso pode ser qq uma) e estará instalado o chrome. 
+
+//////////////////
+
+Filtros WMI – Diferenciando instalações entre SO e Arquiteturas - 
+
+Veja que o chrome q instalamos tem versões diferentes, 32 bits, 64 bits, etc... como filtrar sistemas operacionais ou arquiteturas dentro de uma GPO?
+
+em usuarios e computadores do active directory, dentro da minha UO 'Adm', tenho a maquina 'Adm1', botao direito nela e vou em propriedades > sistema operacional e lá tem a versão do windows 10. no tutorial, ele criou outra maquina chamada 'Adm2', que é Windows 7;
+
+Como eu faria para indicar para instalar somente nas maquinas de windows 10, não instalasse nos servidores e eu gostaria que uma versão de 32 bits fosse instalada nas maquinas de 32 bits (ou nas maquinas de Windows 7)?
+
+No gerenciamento de política de grupo, no dominio 'empresa.local', temos a pasta 'filtro WMI'. na aula, tem um txt de filtro em que temos comandos SQL, em que vamos fazer uma busca nos sistemas operacionais. 
+
+os filtros são esses: 
+
+Windows 10 Todos
+select Version from Win32_OperatingSystem WHERE Version like "10.%" AND ProductType="1" AND OSArchitecture = "64-bit"
+select Version from Win32_OperatingSystem WHERE Version like "10.%" AND ProductType="1" AND NOT OSArchitecture = "64-bit"
+select Version from Win32_OperatingSystem WHERE Version like "10.%" AND ProductType="1"
+
+
+Windows 10 1703
+select Version from Win32_OperatingSystem WHERE Version like "10.0.15063" AND ProductType="1" AND OSArchitecture = "64-bit"
+select Version from Win32_OperatingSystem WHERE Version like "10.0.15063" AND ProductType="1" AND NOT OSArchitecture = "64-bit"
+select Version from Win32_OperatingSystem WHERE Version like "10.0.15063" AND ProductType="1"
+
+
+
+Windows 7, 8 and 8.1 (Todos antes do 10)
+select Version from Win32_OperatingSystem WHERE Version like "6.%" AND ProductType=”1? AND OSArchitecture = “64-bit”
+select Version from Win32_OperatingSystem WHERE Version like "6.%" AND ProductType=”1? AND NOT OSArchitecture = “64-bit”
+select Version from Win32_OperatingSystem WHERE Version like "6.%" AND ProductType=”1?
+
+Windows 8.1
+select Version from Win32_OperatingSystem WHERE Version like “6.3%” AND ProductType=”1? AND OSArchitecture = “64-bit”
+select Version from Win32_OperatingSystem WHERE Version like “6.3%” AND ProductType=”1? AND NOT OSArchitecture = “64-bit”
+select Version from Win32_OperatingSystem WHERE Version like “6.3%” AND ProductType=”1?
+
+Windows 8
+select Version from Win32_OperatingSystem WHERE Version like "6.2%” AND ProductType=”1? AND OSArchitecture = “64-bit”
+select Version from Win32_OperatingSystem WHERE Version like "6.2%" AND ProductType=”1? AND NOT OSArchitecture = “64-bit”
+select Version from Win32_OperatingSystem WHERE Version like "6.2%" AND ProductType=”1?
+
+Windows 7
+select Version from Win32_OperatingSystem WHERE Version like "6.1%" AND ProductType="1" AND OSArchitecture = "64-bit"
+select Version from Win32_OperatingSystem WHERE Version like "6.1%" AND ProductType="1" AND NOT OSArchitecture = "64-bit"
+select Version from Win32_OperatingSystem WHERE Version like "6.1%" AND ProductType="1"
+
+
+Sistemas Operacionais 64-bit
+
+select * from Win32_OperatingSystem WHERE OSArchitecture = "64-bit"
+
+
+Sistemas Operacionais 32-bit
+
+select * from Win32_OperatingSystem WHERE OSArchitecture = "32-bit"
+
+
+/\ neste filtro acima, indica algumas versoes especificas em q ele quer buscar, as arquiteturas (64 bits ou 32 bits), etc. com 'select * from Win32_OperatingSystem WHERE OSArchitecture = "64-bit"' não especifico qual windows eu quero, pode ser qq windows. 
+
+agora, voltando:
+No gerenciamento de política de grupo, no dominio 'empresa.local', temos a pasta 'filtro WMI' > novo > novo filtro > nome: Windows 10 64-bit > adicionar > e aí temos 'consulta', q é onde colocamos os parametros que estamos buscando. vou colocar 'select Version from Win32_OperatingSystem WHERE Version like "10.%" AND ProductType="1" AND OSArchitecture = "64-bit"', e dou 'ok'. renomeei o filtro WMI que criei para 'Windows 10 64-bit'. 
+
+agora, posso ir na GPO por exemplo 'Instalar Chrome', clico nela, e la embaixo tem 'Filtros WMI', e seleciono qual filtro eu quero, vou selecionar o de 'windows 10 64-bit'; 
+
+agora, essa GPO só será executada para os sistemas de windows 10 64 bits de acordo com o filtro q criei; 
+
+assim consigo determinar em quais SOs e em quais arquiteturas serão instaladas determinados softwares.
+
+//////////////
+
+Instalação via software externo - 
+
+vou criar uma GPO no dominio 'empresa.local' chamado 'Libre Office 64 bits' > editar a gpo > config do computador > politicas > config de software > instalaçao de software > novo > pacote > seleciono o LIBREOFFICE (eu deixei na pasta 'Arquivos') msi installer > atribuido > ok...
+
+se desse erro, eu teria que fazer uma instalação VIA SCRIPT ou usar um SOFTWARE que faz a conversão deste pacote. No caso, iremos usar o software chamado 'PDQ Deploy'; baixamos ele e instalamos ele.
+
+ao abrir e usar a versão free, primeiro iremos clicar em 'new package', o nome dele será: 'Libre Office' > clico em 'New Step' > Install > em 'install file' indico o caminho de instalação: \\SERVIDOR1\Arquivos$\Installers\LibreOffice_24.2.5_Win_x86-64_sdk.msi
+
+ao selecionar, veja q em 'command line' já terá o comando q será executado; agora clico me 'salvar', verá terá 'New Package' em packages. agora, iremos em 'deploy' > 'deploy once' > 'choose targets' na nova janela q abrir > active directory > computer > verá q ele vai encontrar o dominio e as maquinas, posso selecionar o que eu desejar, atenção para a instalaçao do programa para a arquitetura correta das maquinas; no caso, vou selecionar 'ADM1' E 'VENDAS1', e confirmo.
+
+ao confirmar, irá instalar. OBS: ----> AS MAQUINAS DEVEM ESTAR LIGADAS. posso depois clicar com botao direito nos targets se falhar e tentar dar 'redeploy' se tiver falha, q irá instalar novamente;
+
+///////////////////////
+
+Instalando o Office 365: Baixando os arquivos de instalação - 
+Vamos baixar hoje o pacote office proprio para GPO. para isto, ela tem uma ferramenta que posso baixar os arquivos necessarios:
+
+office deployment tool.
+
+esse pacote tem que ser preparado para ser instalado via GPO; ao baixar, "instalo"; escolho a pasta, q é onde vai extrair os arquivos, no caso coloquei no 'Documentos'; ao ir la, vou separar em 2 pastas, de arquivos de '32 bits' e de '64 bits'; vou alterar o XML de 64 bits e os de 32 bits o nome para 'download'; vou abrir o XML agora e editar:
+
+troco de 'en-us' para 'pt-br'; 
+retiro também a parte:
+<Product ID="VisioProRetail">
+    <Language ID="en-us" />
+</Product>
+
+agora, abro o cmd: 
+dou cd Documents, e depois cd 64-bit
+
+agora faço download, usando: setup.exe /download download.xml
+
+o ideaal é eu fazer isso na pasta de 32-bits e na pasta de 64-bits; mas vou fazer apenas na de 64bits.
+
+///////////////
+
+Instalando o Office 365: Criando os scripts de inicialização -
+
+ao instalar (no meu caso nao instalou pq nao tenho acesso a internet), terá arquivos nas pastas que indicamos (32-bit e 64-bit); 
+
+agora, faremos o seguinte. nas pastas 64-bit e 32-bit, trocaremos o nome de 'download.xml' para 'instalar.xml', e iremos tirar os comentarios ( <!-- --> ) de 'updates enabled', 'display level' e 'property name'. 
+
+para fazer a instalaçao via GPO, preciso q essas 2 pastas estejam em um local compartilhado, vou mandar no caso para dentro daquela pasta compartilhada oculta, o 'Arquivos'; agora, dentro de '64-bits', vou criar um arquivo no bloco de notas mesmo, q terá o comando para fazer download, mas será /config e não /download, mas como será feito através de terminal, preciso informar o caminho, então neste arquivo terá a linha:
+
+\\SERVIDOR1\Arquivos$\64-bit\setup.exe /configure \\SERVIDOR1\Arquivos$\64-bit\instalar.xml
+
+vou salvar no proprio Arquivos$\64-bit e se chamar 'instalar64.bat'
+
+scripts criados e na pasta compartilhada. agora chamaremos via GPO
+
+//////////////
+
+Instalando o Office 365: Realizando a instalação via GPO 64-bit
+
+Criar politica de grupo, neste caso vamos criar não para o dominio todo (eu poderia se quisesse), mas vou fazer apenas para a UO 'Adm'; nome: 'Office 365 64-bit' > editar > é uma instalaçao na maquina, portanto configuraçao do computador > politicas > config do windows > scripts (inicialização/encerramento) > 2 vezes botao esquerdo em 'inicializaçao' > clico em 'Mostrar Arquivos' > e neste caminho final ('Startup'), coloco o .bat em 'instalar64' que tá naquela pasta '64-bit' com o script q criamos. agora volto na parte das 'propridades de inicializaçao', e adiciono o .bat 'instalar64' > OK > OK.
+
+agora, precisamos especificar um tempo para q o script seja inicializado:
+config do computador > modelos administrativos... > Scripts > 'especificar o tempo de espera maximo para scripts de politica de grupo' > 'habilitado' > segundos > 3500
+
+agora, vamos nas politicas de segurança:
+config do computador > politicas > config do windows > config de segurança > politicas locais > opçoes de segurança > 'controle de conta do usuario: comportamento... elevaçao de administradores no modo de aprovaçao... > e marco 'Elevar sem aviso' 
+
+agora, em controle de conta do usuario: modo de aprovaçao de administrador para a conta de administrador interno > marco 'desabilitada';
+
+digamos que na UO 'Adm', não tenho nenhuma maquina de windows 7, ou 32 bits, etc, entao nao preciso de Filtros. 
+agora, coloco esta GPO q criei como 'Imposto' e veremos se funcionará. 
+
+nas maquinas de usuario, dou 'gpupdate /force', e reinicio. apos isto, logo em alguma maquina do ADM e verá q os Offices serão instalados;
+
+/////////////////
+
+Applocker -
+Sabe-se que o usuario convencional não tem permissão para instalar programas; 
+
+se instalar um programa que nao precisa instalar como 'administrador', ele pode ser um pouco mais esperto e alterar o caminho de instalação para tirar do C: (pq pode dar problema nessa parte), e colocar para instalar os arquivos no perfil dele de usuário, ele vai instalar; como evitar esse procedimento? posso evitar com o 'applocker'; 
+
+como aplicar o applocker pela GPO?
+
+gerenciamento de politica de grupo > vamos aplicar o applocker pra todas as maquinas da minha UO 'ADM' > criar nova GPO > nome 'AppLocker' > editar > é uma politica de maquina, portanto, configuraçoes do computador > politicas > config do windows > configuraçoes de segurança > politicas de controle de aplicativo > terá lá 'AppLocker' > botoa direito no applocker > propriedades >  verá q ele nao esta configurado, tem varias regras ali, nenhuma ta configurada (.exe, .msi, etc), vou selecionar todos > coloquemos todos como 'impor regras'. 'IMPOR REGRAS' -> BLOQUEIA. 'AUDITORIA' -> Só vai criar um LOG (so vai verificar o que o usuario esta executando). 
+
+agora, expandimos o 'applocker' > regras executaveis > botao direito > criar regras padrão. | regras do windows installer, regras de script e regras para aplicativos empacotados: a mesma coisa. botao direito neles e 'criar regras padrão'.
+
+em 'Regras Executáveis', verá q as regras padrao permite que execute arquivos q estejam no Arquivos de Programas, na pasta 'Windows' e também que todos os arquivos de qualquer local para os 'Administradores'.
+
+vamos criar nossa regra:
+quero bloquear o 'cmd.exe':
+botao direito > criar nova regra> avança e permissao é ação: "negar", posso selecionar o usuario ou grupo de usuarios que eu quero permitir/bloquear a quem a regra se aplica, no caso, deixarei pra todos os usuarios > em 'condiçoes' posso indicar o software por 'fornecedor' (seria tipo adobe, microsoft, etc), por 'caminho' (que seria a pasta) ou por 'hash do arquivo' que seriam as configuraçoes do software (se eu criei regra pra uma calculadora versao 1.0, se passar pra v2.0 ja estará liberada). o ideal é 'caminho' ou 'fornecedor', escolheremos: 'fornecedor' > em seguida, pedirá o 'arquivo de referencia', vou no 'windows', system32 e procuro por 'cmd.exe' e seleciono. se eu subir o nivel, ele sobe para "qualquer", ou seja, 'todas as versões, todos os nomes do arquivo, todos os nomes do produto', etc; vou subir até 'nome do produto', etc...
+
+vamos voltar e fazer por 'hash do arquivo', seleciona e procura novamente o arquivo pelo 'cmd.exe', e confirma; 
+
+- só esse procedimento não irá fazer com q o 'AppLocker' funcione, eu preciso habilitar a identidade do aplicativo.
+
+volto na ediçao do GPO > config do PC > config do windows > config de segurança > serviços do sistema > procuro por um item chamado 'identidade do aplicativo' > propridades dele > habilito a caixinha e deixo como 'automatico'.
+
+agora, volto na minha GPO que criei na UO 'ADM', botao direito > deixo como 'Imposto'. 
+
+agora, vou numa maq de usuario, digito 'gpupdate /force' e faço logoff. 
+
+agora, ao tentar executar um arquivo '.exe' pela maquina do usuario dará erro (ex.: OperaGXSETUP.EXE)
+
+Para aplicar para o '.msi', basta fazer a mesma coisa, porem para 'Windows Installer'.
+
+/////////////////////
+
+Objetos das políticas de grupo -
+No container de 'gerenciamento de politica de grupo', temos a pasta 'objetos de politica de grupo', ele funciona como repositorio para todas as políticas de grupo que vc já criou; 
+
+por ex, eu tenho a politica de grupo de instalar chrome, após instalar o chrome não preciso mais dela; se eu pressionar 'delete', não vai excluir o GPO, só vai excluir o link; 
+
+mas no 'objetos de politica de grupo' ela se mantém, pra eu voltar com ela, basta arrastar para onde a politica de grupo estava. 
+
+se eu tiver certeza q eu nao quero mais usar uma GPO, ai vou no objetos de politicas de grupo e apago tal 'GPO'; 
+
+//////////////
+
+Backup das políticas de grupo - 
+Caso eu queira recuperar alguma politica de grupo futura, eu tenho um backup, não teria q refazê-las; o ideal é que o backup não seja feito na mesma maquina nem no mesmo disco do servidor; 
+
+vou fazer o backup das politicas de grupo em outro servidor, no caso, SERVIDOR2; 
+
+no SERVIDOR2, crio uma pasta chamada 'Backup'; nome do compartilhamento: "Baclup$", nesta pasta, ativo o compartilhamento, altero as permissoes e adiciono 'Administrators' para alterá-la com controle total; 
+
+nesta pasta, crio outra pasta chamada 'GPO', onde eu farei os backups das GPOs; 
+
+agora, vou no gerenciamento de politica de grupo > empresa.local > objetos de politica de grupo > botao direito > fazer backup de tudo > "Local: \\SERVIDOR2\Backup$\GPO", Descrição: 'Backups GPOs' > faço o backup. 
+
+agora, checo na pasta onde é feito o backup e verá q todas estão ali. 
+
+///////////////////////////
+
+Restauração das políticas de grupo -
+
+Agora, como restaurar o backup?
+
+Vamos excluir todos os objetos de politica de grupo, vamos excluir direto pelo SERVIDOR1 mesmo. 
+
+agora, botoa direito em 'objetos de politica de grupo' > gerenciar backups > Local: "\\SERVIDOR2\Backup$\GPO"
+
+O ideal é que marque a opçao 'marque somente a versão mais recente de cada GPO", para mostrar os backups mais recentes (a nao ser q queira restaurar um backup mais antigo). 
+
+obs: a instalaçao da GPO não reaplica a instalaçao dos filtros, então terá que refazer os filtros WMI caso exclua o filtro se a GPO estiver vinculada; 
+
+OBS: PRIMEIRO RESTAURE OS DEFAULT DOMAIN, depois o resto das GPOs. 
+
+////////////////
+
+NO TESTE:
+
+Bom trabalho!
+Para esta infraestrutura serão necessárias 8 licenças do Windows Server 2019, lembrando que cada licença contempla dois núcleos e mínimo de licenças que podem ser adquiridas são 8. São 25 máquinas clientes na rede, desta forma, serão necessárias 25 licenças do Windows 10. Como são 50 funcionários e os mesmos poderão acessar o servidor remotamente, uma Use CAL por usuário será necessária, totalizando 50 User CAL
+Pergunta 5:
+A empresa Silva & Silva possui um servidor com um processador de 4 núcleos, 25 máquinas clientes que serão utilizadas por 50 funcionários, caracterizando 50 usuários. Esses mesmos usuários poderão fazer acesso remoto e consumir informações do servidor de suas casas. Quais e quantas licenças serão precisarão ser adquiridas pela empresa Silva & Silva?
+
+///////////////
+
+Instalando o Windows Admin Center (cliente) - 
+
+Toda gerencia no servidor feita ate agora foi feita diretamente no servidor, ou seja, precisava q eu estivesse fisicamente no servidor; a desvantagem é que dependendo do local onde o servidor está, eu nao posso estar no servidor; na gerencia do servidor tbm, toda gerencia nao ta centralizada; se eu precisar gerenciar DNS preciso ir na 'ferramentas > dns', etc. 
+
+tentaram centralizar o acesso em um local só: o Windows Admin Center; 
+
+vc pode acessá-lo via browser. vc pode acessar no windows 10, ou num servidor (via terminal no dominio ou até mesmo fora do dominio caso eu tenha acesso a internet neste servidor); 
+
+o acesso remoto via windows admin center com um terminal pode ser bem lento, mas fica a seu criterio; 
+
+na maquina de usuario, no caso, escolhemos ADM1, entremos com 'Administrator'... 
+
+procuremos por windows admin center no google (se tiver internet) e instalemos; 
+
+instalo e escolho não atualizar por enquanto na instalação... 
+a porta para gerencia é melhor nao trocar, mantenha '6516', selecionemos 'permitir q o windows modifique as config de host...' e 'criar um atalho' e instala. escolho o 'windows admin center client' o certificado; 
+
+///////////////////
+
+Utilizando o Windows Admin Center via Cliente -
+
+ao pedir para abrir ao termino da instalaçao, abrirá no local, assim: localhost:6516/ , na porta '6516', e verá q no momento terei somente o gerenciamento local, no caso, 'adm1.empresa.local', mas posso adicionar quais servidores desejo gerenciar; 
+
+ao acessar no navegador localhost:6516/ verá que teremos as informaçoes de minha maquina.
+por ex, em 'armazenamento' terei informaçoes sobre meu disco.
+tenho informaçoes sobre 'usuarios e grupos locais', etc. posso criar um usuario local se eu achar interessante; 
+
+
+posso também clicar em 'windows admin center' na parte superior esquerda, irá ali aparecer 'todas as conexões', e posso clicar em 'adicionar' e vai pedir 'servidor' e 'computadores', posso escolher; vou adicionar mais um servidor, no caso, vai pedir nome do servidor que desejo visualizar, vou colocar 'servidor1.empresa.local', então vai buscar esse servidor 'servidor1' q ta no dominio 'empresa.local'; ai vai adicionar o servidor pra gerenciar; 
+
+clico no que adicionei, e veremos as configuraçoes do momento..
+
+em 'arquivos e compartilhamento de arquivos' veremos os arquivos q temos na unidade C, etc...
+posso criar uma pasta no C:, vamos criar uma pasta chamada 'PastaVendas'.
+
+clico na PastaVendas para selecioná-la, clico nos 3 pontinhos, clico em 'Compartilhar', e procuro por 'GRP_Vendas', que é um grupo, para que eu possa compartilhar essa pasta com todos os usuarios que estão no grupo GRP_Vendas, adiciono o GRP_Vendas, e em seguida mostrará a permissao do grupo, vou colocar que eles poderão ter 'Controle Total';
+
+posso excluir tbm se eu quiser, posso fazer upload tbm dos arquivos q estao no servidor, e também 'baixar'; 
+
+/////////////////
+
+RSAT -
+Enquanto o windows admin center não apresente a maioria das config de um servidor, o ideal é que se use o RSAT; é um software especifico para gerenciamento remoto de servidores;  
+
+Instalo o RSAT na máquina dos usuários; 
+
+Ao instalar, veremos q teremos 'Ferramentas Administrativas do Windows', e teremos varias ferramentas, inclusive às referenciadas ao servidor; teremos lá 'Usuarios e Computadores do AD', 'gerenciamento de politica de grupo', etc...  (teremos q instalar recursos opcionais pra aparecer)
+
+////////////////
+
+Acesso Remoto - 
+Veremos outra maneira além do RSAT pra acessar remotamente aos serviços, podemos usar a área de trabalho remota, pra acessar remotamente todo o servidor, mas para isto preciso liberar o acesso; 
+
+No servidor, no 'servidor local' temos 'acesso a area de trabalho remota', por padrão é desabilitado, temos q habilitar; clico nela; e seleciono 'permitir conexoes remotas com este pc'; em 'selecionar usuarios', vou colocar 'Administrator', ou seja, somente o administraador pode fazer o acesso remoto a esta maquina; 
+
+vou agora na maquina de usuario, windows 10, logo com 'Administrator' do dominio e procuro por 'conexao de area de trabalho remota': indico o computador, no caso, IP (192.168.100.10) ou o serviço de dns tiver ok, posso colocar: 'servidor1.empresa.local', isto é, NOMEDOSERVER.NOMEDODOMINIO;
+
+vamos logar como: 192.168.100.10. 
+
+aceitamos certificado, e conseguiremos logar no servidor1.
+
+///////////////////
+
+Acesso romoto via Microsoft Remote Desktop App.
+
+é um aplicativo, disponivel para android, e no meu celular posso acessar meu servidor via o IP da rede externa. conta de usuario: empresa/administrator
+
+////////////////
+
+Delegação (Active Directory) - 
+Em uma infraestrutura grande, as vezes fica inviavel pro admin administrar toda a rede, principalmente o AD; 
+
+Posso delegar para q uma unidade Organizacional possa adicionar ou remover usuarios, etc. 
+
+vamos no servidor > ferramentas > usuarios e pcs do AD > UO ADM > Usuarios. vamos delegar pra q o alberto roberto possa add e remover usuarios, etc. > clico botao direito na UO 'Adm' > Todas as Tarefas > Delegar Controle > avanço e adiciono qual usuario vai ser delegado para as funçoes que vou dizer > procuro por 'alberto' e verifico o nome > avanço > em seguida escolho oq vou delegar pra esse usuario, escolhi criar e excluir e gernciar contas de usuario e redefinir senhas de usuario e forçar alteraçao no proximo login > concluir. 
+
+agora, como o usuario vai fazer essa funçao? ele não fará por servidor, fará por RSAT; ai poderá excluir e adicionar usuario; 
+
+
+////////////////////
+
+Auditoria de login / logoff - 
+
+O ideal é q vc especifique quais usuários voce deseja auditar pra q o log nao fique mt grande; 
+
+vou logar direto no server pois meu RSAT nao ta funfando;
+
+
+no gerenciamento de politica de grupo, vou editar a GPO Default domain policy para que seja aplicada a todos os usuários; essa configuraçao é uma configuraçao de computador, então, se for aplicar em uma unidade organizacional, os computadores que voce deseja auditar devem estar na mesma pasta da unidade organizacional q voce deseja auditar; voce vai encontrar no 'config do computador > politicas > config do windows > configuraçoes de segurança > politicas locais > politica de auditoria > auditoria de eventos de logon de conta > propridades dele e habilito as configuraçoes de politica para 'exito' e para 'falha' 
+
+ok, vamos fazer um logon e ver se ele foi auditado; 
+pra ver se foi auditado, abrimos o 'event viewer' (visualizador de eventos) ou damos um Win + R e executamos: 'eventvwr.msc' q é a mesma janela. na janela, devemos abrir 'Windows Logs', e abramos 'Security', cada evento especifico tem um ID. posso utilizar o 'Localizar' q tem na direita e buscar pelo usuário; no caso, digitei 'albertoroberto', e teremos a tarefa realizada por ele (logoff, logon, etc) dos eventos; mostra o Ip, etc... 
+
+/////////////////
+
+Auditoria de Objetos - 
+Faremos agora auditoria de objetos, para verificar quais usuarios estão criando arquivos, excluindo arquivos em uma determinada pasta. 
+Não vou aplicar a politica de grpo no 'Default Domain Policy', vou fazer para as maquinas pertencentes à UO 'ADM'; Crio uma GPO no 'ADM' chamada 'Auditoria pasta PUBLICA', edito ela > vou em 'config do PC > politica > config do windows > config de segurança > politicas locais > politica de auditoria > auditoria de acesso a objetos" > ativo e marco 'exito' e 'falha'.
+para ter certeza que a GPO 'auditoria de acesso a objetos' será imposta, marco ela como 'Imposto'. 
+
+- somente voce criar a GPO não confirma que a auditoria está acontecendo, preciso indicar quem é o alvo desta auditoria; preciso dizer que lá na pasta PUBLICA seja auditado as máquinas do ADM; 
+
+na minha UO 'ADM', tenho somente uma maquina: 'ADM1'.
+em 'usuarios e pcs do AD', crio um grupo chamado 'GRP_MQS_ADM'.
+
+agora, vou no PC 'ADM', botao direito nele > adicionar a um grupo > e adiciono ao grupo 'GRP_MQS_ADM'
+
+agora, vou na pasta 'Publica' > propriedades > segurança > avançadas > auditoria > nesta aba posso adicionar uma auditoria, clico em 'adicionar', e agora preciso selecionar uma 'entidade de segurança', verifico o nome 'GRP', e escolho 'GRP_MQS_ADM', e seleciono o criterio a mais de permissoes basicas o "Modificar" q inclui "escrever" tbm. 
+
+agora, abro o cmd e dou um gpupdate /force.
+
+agora, vamos na maquina 'adm1', loguemos com algum usuario e vamos excluir algo pra verificar a auditoria; 
+
+criei um arquivo txt 'teste' na pasta 'Publica' pelo usuario 'albertoroberto' q é de ADM, exclui, agora voltei no servidor, to indo no 'visualizador de eventos' > 'logs do windows' > segurança > localizar > albertoroberto > e agora perceba que vai mostrar a pasta q ele acessou, as açoes feitas pelo arquivo de excluir e criar arquivo, etc.  
+
+/////////////////////////
+
+Definindo data e horário para atualizações (Windows Update) - 
+Um dos grandes problemas em uma infraestrutura grande, é a questão de gargalo de internet; atualizaçao das maquinas na sua infraestrutura... se vc tiver 500 maquinas e todas estiverem agendadas pra fazer atualizaçao em horario de produçao, dia de semana normal às 15h... teremos internet limitada aos funcionarios da empresa. 
+
+cenario 1 - vc pode definir pra um dia em q as pessoas nao estejam trabalhando, ou vc pode agendar em algum determinado dia da semana...
+cenario 2 - vc tbm pode criar um servidor de atualizaçao, através da qual meus terminais pegam as atualizações desse servidor; 
+
+o cenário 1:
+no servidor, entremos no gerenciamento de politica de grupo. vou aplicar a GPO para todas as maquinas do meu dominio, entao aplico em 'default domain policy'; clico nela > editar > config do computador > politicas > modelos administrativos > componentes do windows > windows update > escolho 'configurar atualizaçoes automaticas' > editar > clico em 'habilitado' > troco a 'configurar atualizaçao automatica' para 'baixar automaticamente e agendar a instalação' > marco 'instalar durante a manutençao automatica' e coloco todo sabado e a partir dos 12h. posso tbm, embaixo, colocar quando será feito, isto é, a cada semana, ou a primeira semana do mes, etc. vou marcar 'a cada semana'. 
+
+assim, minhas maquinas terao data e horario pra fazer download e atualizar; este é o método padrão; 
+
+///////////////////
+
+Instalando o serviço de atualizações (WSUS) - 
+
+Agora, iremos criar nosso serviço de atualização. precisarei baixar as atualiuzaçoes em um servidor; 
+
+vou criar um disco especifico somente para salvar atualizações. no virtualbox, vou nas configuraçoes do meu 'windows server 2022' > armazenamento > clico na minha controladora SATA e clico no '+' pra adicionar disco rigido e clico em 'criar' > será de nome 'Updates1.vdi'.
+
+agora, inicio meu servidor na maquina virtual, verá q o disco ainda nao irá aparecer no 'este computador'. botao direito no menu 'windows' iniciar > 'gerenciar disco' > ja vai aparecer o 'Disco 1 ', e recomendado q deixe como 'MBR' q é o padrão. clico sobre o botao direito em 'disco 1' que aparece embaixo > novo volume simples > usamos unidade 'U', mas pode ser qualquer > padrão NTFS > Rótulo do volume será 'updates' > agora tá formatado. o disco irá aparecer. 
+
+agora, vou no gerenciamento do servidor, 'adicionar funçoes e recursos' > instalaçao baseada em funçao ou recurso > escolho SERVIDOR1 > Escolho 'windows server update services' > instalaçao sera feita via 'web server', adicionar recursos > temos os serviços de funçao em 'WSUS', q pode ser banco de dados interno ou sql server connectivity, mas vamos usar ainda o bd interno (WID CONNECTIVITY) > vou escolher 'armazenar atualizaçoes' em: U:\Updates (vou criar a pasta Updates na unidade ainda) > nao vou escolher funçoes adicionais > confirmo e instalo. 
+
+
+///////////////////
+
+Configurando o servidor de atualizações - 
+No servidor, vamos em ferramentas > windows server update services > vai pedir o local da instalação, no caso: U:\Updates.
+apos isto, vai iniciar a instalaçao de configuraçao > nao quero ingressar no programa de aperfeiçoamento > avanço, depois posso escolher se quero sincronizar com um servidor especifico do windows server update services ou com o microsoft update > caso haja necessidade de proxy, ao avançar posso configurar também > deois clico em 'start connecting' > depois vai pedir pra escolher idiomas > escolho agora quais produtos desejo atualizar em 'escolher produtos'. o ideal seria 'todos os produtos', mas iria consumir muitos dados... vou no caso atualizar somente o 'windows 10', so atualizar quais serviços > avançar, e agora escolho as classificações, no caso, atualizaçoes de segurança, vou deixar o padrão q são 'autalizaçoes criticas, de definiçoes e de segurança'. em 'upgrades' também deixa q é upgrade pro windows > avanço, e depois inicio a sincronização e escolho 'sincronizar manualmente' > vai para 'concluido' e marco o 'começar a sincronização inicial' > depois só concluir. 
+
+vai aparecer a aba de 'atualizar serviços', e verá q no 'SERVIDOR1' terá a sincronização. 
+
+//////////////////
+
+Aprovando ou recusando atualizações específicas - 
+A sincronização finalizou, mas nao realizei o download. Toda atualização preciso aprovar ou não o download. caso eu faça download, meus terminais farão update atraves desse download. 
+
+vai aparecer na tela de 'atualizar serviços', no servidor1, que terá atualizaçoes de segurança q estão aguardando para serem aprovadas. preciso aprová-las, clico no hyperlink pra aprovar. 
+
+clico na atualizaçao e posso recusar ou aprovar no menu da direita.
+
+posso selecionar tudo, só dar CTRL + A > aprovar (ou recusar), vai aparecer a aba de 'aprovat atualizaçoes', clica em 'todos os computadores' e em 'computadores nao atribuidos' (vou aprovar pra todas as maquinas) > aprovados para instalação.
+
+apos aprovar, ainda terei atualizaçoes criticas, mas os downloads serão iniciados. so clicar de novo e aprovar ou recusar 
+
+/////////////
+
+Configurando atualizações via intranet-
+Faremos via GPO.
+
+Vou no gerenciamento de politica de grpo > criar GPO na 'empresa.local' > nome: 'Windows Update Intranet' > editar > config do computador > politicas > modelos administrativos... > windows update > 'configurar atualizaçoes automaticas' > habilitado > 'opçoes': - 4 baixar automatiacmente e agendar, e agendar para 0 - todo dia e às 12h.
+
+e também edito o 'especificar o local do serviço de atualizar na intranet ' > edito > habilito > configurar serviço de atualizaçao é: http://proxy-brasilia.intraer:8080 e para configurar estatisticas coloco mesmo endereço. deixo a GPO 'Windows Update Intranet' como imposto pra ter certeza q será aplicada; 
+
+agora, vou no 'windows server update services' > servidor1, e lá posso ver as estatisticas de quais maquinas fizeram o download em 'computadores' ou que nao conseguiram fazer o download; 
+
+///////////////////
+
+Definições iniciais do novo servidor de arquivos - 
+Vamos add 2 discos rigidos no servidor2, 'meudisco1' e 'meudisco2', os 2 de 20GB. 
+
+agora, vamos adicionar os novos discos no SERVIDOR2. botao direito no windows iniciar > gerenciamento de disco > vai encontrar os 2 discos, seleciono-os > agora botao direito no disco 1 disco 2 > novo volume simples > formato. 
+
+para fazer gerenciamento de cota, triagem, q faremos futuramente, preciso instalar um recurso.
+
+adicionar funçoes e recursos > proximo > proximo > file and storage > file and iscsi > file server resource manager > adicionar recurso > em 'recursos' n vamos escolher nenhum recurso adicional, so ir em instalar
+
+eu vou migrar o que esta no servidor1 para o servidor de arquivos 'Disco1' que criamos, na unidade 'W'. vamos migrar o que tem no C:\ do servidor1. vamos criar duas pastas: 'Pasta Base' e 'Publica' (pode ser outro nome). agora vamos ativar o compartilhamento (antes, desative o compartilhamento destas pastas q estao no C:\ no servidor1) e o nome do compartilhamento deve ser oculto sendo 'Pasta Base$'; vamos adicionar permissao para os usuarios do dominio (Domain Users), e é controle total a eles; 
+
+ainda na 'Pasta base' nas propridades, vou em 'segurança' > avançadas > na aba permissoes > vou remover os usuario padrão (Users (EMPRESA\USERS)) e também vou desabilitar herança, para que a pasta pertença somente ao dono dela que criou ela, e ao clicar em 'desabilitar herança' escolho 'converter as permissoes herdadas em permissoes explicitas (isto é, para a pasta que foi criada lá dentro )'
+
+ja na pasta 'Publica' só altero o nome do compartilhamento para 'Publica$' para ser oculta, e permissao deixo para everyone o controle total; 
+
+//////////////
+
+Criando / aplicando um template para cotas
+Já criuamos a 'Pasta Base' que já está compartilhada. Ela será usada para armazenar informaçoes pessoais do usuário. Por padrão, poderá usar o espaço na pasta enquanto tiver espaço fisico no disco. Porém, posso limitar o espaço para os usuários. Posso limitar para 150MB por exemplo; 
+
+No servidor2 no gerenciador do servidor, Vamos em ferramentas > 'gerenciador de recursos de servidor de arquivos' > gerenciamento de cota > em 'cotas' sao as cotas ja aplicadas. vou em 'modelos de cota', e aparece uns modelos padrao que o windows server ja me apresenta. temos as 'rigidas' e 'suave', mas como não temos de 50MB, vamos em 'criar modelo de cota' > escolhemos para copiar propriedades de '250MB Extended Limit' em 'nome do modelo: 'Cota de 150MB', e em limite colocamos '150 MB'. em 'cota fixa' eu limito exatamente a 150MB, com 'cota flexivel' eu consigo gravar mais de 150MB, mas o servidor recebe um log no gerenciador de eventos que ja chegou nos 150MB. vou botar 'cota fixa'; e adiciono;
+
+agora, em 'Cotas', botao direito e clico em 'Criar Cota, o caminho da cota coloco o caminho para: 'Pasta Base'; e quero que seja aplicado também para as 'sub pastas'  da 'pasta base', nao somente à 'pasta base', então seleciono 'aplicar modelo e criar cotas em subpastas novas e existentes automaticamente', pois cada usuario terá sua subpasta; em 'derivar propriedades...' seleciono a cota que criei agora, isto é, 'cota de 150MB' > agora crio. 
+
+será criado em 'Cotas' e verá q mostra um '*' em 'W:\Pasta Base\*', pq é aplicada automaticamente. 
+
+Agora, vou usar o AD para indicar a pasta base dos usuarios. ferramentas > usuarios e pcs do AD > ADM > Usuarios > seleciono todos que eu tenho > botao direito > propriedades > perfil > marco Pasta base e boto em 'Conectar', na unidade 'Q:' e o caminho: '\\SERVIDOR2\Pasta Base$\%username%'
+
+faço a mesma coisa para os usuarios da UO 'Vendas'.
+
+pronto, ao fazer isto irá aparecer as pastas dos usuarios em 'Pasta Base' e em 'gerenciador de recrusos do servidor de arquivos, aparecerá lá em 'Cotas' as pastas. já está limitado as cotas de 150MB. 
+
+ao logar em usuario, verá lá o espaço maximo de 150MB p/ gravar; so terá até 150MB pra gravar no disco, pois é limitado pela cota; 
