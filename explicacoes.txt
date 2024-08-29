@@ -1009,10 +1009,278 @@ agora, em 'Cotas', botao direito e clico em 'Criar Cota, o caminho da cota coloc
 
 será criado em 'Cotas' e verá q mostra um '*' em 'W:\Pasta Base\*', pq é aplicada automaticamente. 
 
-Agora, vou usar o AD para indicar a pasta base dos usuarios. ferramentas > usuarios e pcs do AD > ADM > Usuarios > seleciono todos que eu tenho > botao direito > propriedades > perfil > marco Pasta base e boto em 'Conectar', na unidade 'Q:' e o caminho: '\\SERVIDOR2\Pasta Base$\%username%'
+Agora, vou usar o  AD para indicar a pasta base dos usuarios. ferramentas > usuarios e pcs do AD > ADM > Usuarios > seleciono todos que eu tenho > botao direito > propriedades > perfil > marco Pasta base e boto em 'Conectar', na unidade 'Q:' e o caminho: '\\SERVIDOR2\Pasta Base$\%username%'
 
 faço a mesma coisa para os usuarios da UO 'Vendas'.
 
 pronto, ao fazer isto irá aparecer as pastas dos usuarios em 'Pasta Base' e em 'gerenciador de recrusos do servidor de arquivos, aparecerá lá em 'Cotas' as pastas. já está limitado as cotas de 150MB. 
 
 ao logar em usuario, verá lá o espaço maximo de 150MB p/ gravar; so terá até 150MB pra gravar no disco, pois é limitado pela cota; 
+
+////////////////
+
+Criando / aplicando um template para triagem -
+Posso dizer QUAIS ARQUIVOS você não pode salvar em determinado lugar. 
+
+No servidor2, vou em 'ferramentas' > "gerenciador de recursos do servidor de arquivos" > gerenciamento de triagem de arquivo. ali em 'grupos de arquivos' já mostra quais extensões de arquivos voce pode criar. no caso, vou criar um grupo especifico em que vou dizer quais arquivos eu quero bloquear. 
+
+na direita, em 'grupos de arquivos', vou em 'criar grupo de arquivos...' > 'nome do grupo de arquivos' e digito o nome pra esse grupo: "MeuGrupo". em 'arquivos a serem incluidos' coloco um filtro com nome para esses arquivos, posso especificar o nome completo pra esse arquivo. coloco '*.NOMEDASEXTENSOESDOSARQUIVOS'.
+no caso, vou colocar:
+*.exe (para q meus usuarios nao possam colar arquivos .exe na pasta) 
+*.com
+*.msi
+*.bat
+*.mp* (pra pegar mp1, mp2, mp3, mp4, etc)
+*.avi
+
+posso selecionar tambem quais arquivos sao excluidos da triagem. 
+
+em 'Modelos de Triagem de Arquivos' tenho modelos prontos, onde alguns bloqueio audio, email, imagem, executaveis, etc. vou criar meu modelo, clico em 'Criar Modelo de Triagem de Arquivos'. 
+verá q posso copiar propriedades do modelo, de modo que eu me baseie em algum modelo já criado. digito o nome do modelo, vou colocar : 'MeuModelo'
+escolho:
+triagem ativa ou passiva. ativa = realmente bloqueio caso o usuario tente copiar. passiva = deixa copiar, mas vai pro log; 
+escolho o grupo de arquivos a serem bloqueados, no caso, será 'MeuGrupo'; 
+em 'Log de Eventos', posso selecionar pra que envie o aviso para log de eventos. em 'entrada de log' posso colocar o texto q eu desejar, mas vou deixar o texto padrão. 
+
+agora, nao basta isso. vou em 'triagem de arquivos' > 'criar triagem de arquivos...' > caminho da triagem de arquivo: W:\Publica; 
+
+escolho para derivar do modelo que criei: 'MeuModelo'; 
+
+agora, a triagem está criada e ativa; 
+
+além da triagem, digamos que ao chegar em 5GB eu seja avisado: 
+em 'modelos de cota', crio um modelo de cota so pra mim de modo q tenha um log; 'criar modelo de cota...' > nome do modelo: '5GB (Log)' > Limite: '5GB' e escolho 'cota flexivel', ou seja, apenas quero ser AVISADO (log);
+
+vou aplicar esta cota ONDE?
+vou em 'cotas', clico em 'criar cota... ' >  caminho da cota coloco na pasta 'Publica', q tá em: W:\Publica > derivar propriedades de 5GB (Log);
+
+agora tenho a triagem pra pasta publica e o log também.
+
+agora, ao tentar colocar um arquivo de extensão q eu tenha indicado na minha triagem será bloqueado. 
+
+se no powershell eu digitar:
+fsutil file createnew \\Servidor2\publica\Arquivo1.bkp 100000000
+fsutil file createnew \\Servidor2\publica\Arquivo2.bkp 100000000
+fsutil file createnew \\Servidor2\publica\Arquivo3.bkp 100000000
+fsutil file createnew \\Servidor2\publica\Arquivo4.bkp 100000000
+fsutil file createnew \\Servidor2\publica\Arquivo5.bkp 100000000
+
+os arquivos serão criados, ao ir em 'cotas' verá q terá 25% ja utilizado dos 5GB. 
+vamos na pasta publica e vamos copiar e colar os arquivos novamente, pra ultrapassar os 5GB.
+
+ao ir no 'visualizador de eventos', vai em 'logs do windows' > 'aplicativo', e verá q terá o 'aviso' com o log.
+
+mas, cade o log da cota?
+por padrão, ele não vem.
+
+vamos la em 'cotas', seleciono a cota de 5GB (Log), W:\Publica > botao direito > editar propriedades da cota > adicionar.. > 'log de eventos', e clico em 'enviar aviso para log de eventos', e dou 'ok' e ' ok'. 
+
+agora, ao ultrapassar, terá o quanto de espaço foi usado ja e excedido. 
+
+//////////////
+
+Relatório de arquivos (grandes, duplicados, cotas, etc) -
+posso gerar relatorio por arquivos identicos. util para verificar se o mesmo usuario possui o mesmo arquivo em diferentes pastas. ou está no mesmo servidor, mesmo arquivo, que é utilizado por todo mundo, mas todo mundo está gravando num determinado lugar; 
+
+assim posso ver quais são esses arquivos e centralizar esses arquivos num lugar só para q eu possa economizar espaço no meu disco, ou também posso fazer uma busca por arquivos grandes (ex: fazer busca por arquivos acima de 5GB); 
+
+vejamos oq fazer para que o relatorio possa me dar um retorno:
+no SERVIDOR2
+abramos o POWERSHELL:
+
+cd \
+fsutil file createnew Carta_de_cobrança.doc 3000
+dir 
+
+verá q terá o arquivo criado.
+
+vou la na unidade C:\ pra pegar este arquivo e fazer copia deles para cada um dos usuários na 'Pasta Base', no caso, em: 'W:\Pasta Base'.
+(coloquei so em algumas pastas); 
+
+agora, façamos uma busca pra ver se ele acha esses arquivos.
+vou no 'gerenciador de recursos do servidor do windows', vou em 'gerenciamento de relatorios de armazenamento' > botao direito e posso agendar uma nova tarefa ou gerar agora em 'gerar relatorio agora'.
+
+estou buscando 'arquivos duplicados', portanto o seleciono > posso editar os parametros. posso escolher embaixo a extensão em q quero q venha o relatorio; em 'escopo' indico qual pasta vou buscar, clico em 'adicionar', e escolho a 'Pasta Base' q tá na W:\.
+
+e em 'entrega', eu poderia fazer a entrega via servidor de e-mail; ao dar 'ok', vai perguntar se quer q gere relatorio em 2 plano, ou gerar relatorio e exibir; como tenho poucos dados, selecionei 'gerar relatorio e exibir'; 
+
+vai mostrar la no 'StorageReports\Interative' o relatorio em DHTML; 
+
+verá quem criou primeiro as copias, etc; 
+
+///////////////////////////////////
+
+Relatório agendado - 
+No servidor2, vou em 'Gerenciador de recursos do servidor de arquivos' > 'Gerenciamento de relatorios de armazenamento' > botao direito e 'Agendar uma nova tarefa de relatório...' > nome: 'Relatório de arquivos grandes' > e seleciono relatorio apenas para 'Arquivos Grandes' desmarcando os outros > seleciono o 'arquivo grande' e clico em 'editar parametros' e para tamanho minimo de '100MB'; e embaixo na caixa de texto indico quais tipos de arquivos quero, podendo ser *.zip, *.mp4, etc, no caso, quero qualquer arquivo, entao deixo vazio. dou 'ok'.
+
+vou em 'Escopo', clico em 'Adicionar...', e vou no  W:\Publica e no W:\Pasta Base e seleciono as 2 pastas; 
+
+em 'entrega' poderia entregar por email se eu tivesse um servidor de email; 
+
+em 'agenda' indico o dia e horario que quero que seja enviado. em 'limite' posso limitar pra construçao do relatorio nas horas que voce indicar;
+
+dou 'ok'. 
+
+foi agendado; se eu quiser executar agora, basta ir com botao direito nele e executar. 
+
+////////////////
+
+DFS (Sistema de arquivos distribuídos) - 
+
+Usaremos quando, por exemplo, digamos que tenhamos mais de um servidor de arquivos, ex: servidor1 e servidor2. no servidor1, voce tem 2 pastas (documentos e planilhas); no servidor2 voce tem 'imagens e gerais'; sao 4 pastas; as vezes fica inviavel criar 4 caminhos de redes, se vc tiver 20 pastas, vc vai criar 20 caminhos de rede pro usuario? entao voce pode usar um sistema chamado 'namespace', onde vc cria apenas um compartilhamento (Ex: publico) e dentro deste compartilhamento vc indica todas as pastas que voce vai utilizar (ex: Documentos no servidor1, planilhas no servidor1, imagens no servidor2, gerais no servidor2, etc ).  
+
+Vamos no Servidor1, vamos na unidade C, crio uma pasta chamada 'Documentos' > propriedades > compartilhamento > ativo o compartilhamneto, com permissão para todos os usuários do meu domínio (Domain Users) 
+
+No SERVIDOR2, vou no 'Novo Volume' q tá na unidade Y:\ e crio as pastas 'Geral' e 'Planilhas', onde as 2 tem compartilhamento para todos os usuarios do dominio (Domain Users);
+
+agora, vou criar um compartilhamento unico para estas 4 pastas. preciso ter um servidor principal, pois será neste servidor em que iremos criar o namespace. no caso, será no SERVIDOR1 em que teremos todas as pastas q iremos precisar; no servidor1, então, preciso instalar uma ferramenta que se chama 'NameSpace DFS'.
+
+no gerenciador de servidor, vamos em 'adicionar funçoes e recursos', vou passando e em 'funçoes do servidor' seleciono 'file and storage services', 'file and iSCSI Sevices' e seleciono 'DFS NameSpace'  e instalo. 
+
+agora, em 'Ferramentas', verá que terá 'Gerenciamento DFS'. vou nela.
+tenho ali 'namespace' e 'reaplicação'. vou no namespace e vou criar um container, no qual vou criar 4 compartilhamentos; botao direito e 'novo namespace'. na primeira parte de 'servidor de namespace', em 'Servidor' digito: "SERVIDOR1'. 
+o noem do container agora (na parte de Nome e Configurações do Namespace), digito 'Publico'; em 'tipo de namespace' posso escolher 'Namespace baseado em dominio' ou 'namespace autonomo'; ai eu crio; 
+
+agora, em 'Namespaces' vou ter um container chamado 'Publico'; neste container vou colocar todas as pastas que eu desejar; como coloquei compartilhamento para todo mundo, não vai ter problema; posso criar namespace 'Adm' e neste namespace colocar somente as pastas compartilhadas acessiveis ao pessoal do 'Adm'; vou abrir o namespace, la na direita vou em 'Nova Pasta...' 
+
+dou como nome 'Documentos, clico em 'Adicionar...' e digito o caminho. botei '\\SERVIDOR1' e coloquei em 'Procurar', pra procurar as pastas dentro do 'SERVIDOR1'. lá tem 'documentos', então seleciono esta pasta 'documentos'. 
+
+agora faço a mesma coisa pra 'Imagens', Planilhas e Geral (diferenciando Planilhas e geral que estao no SERVIDOR2). 
+
+assim, tenho os 4 compartilhamentos dentro de um unico container chamado 'Publico'; via GPO então, compartilho apenas o container 'Publico' em vez de compartilhar as 4 pastas; 
+
+vou na 'GPO', será pra todo o dominio, entao botao direito em 'empresa.local' > Novo GPO > nome: 'NameSpace_Publico' > editar > o compartilhamento é igual ao normal, entao é configuraçao de usuario > preferencias > configuraçoes do windows > mapas de unidades > novo > unidade mapeada > açao 'atualizar' e o 'Local' uso: '\\EMPRESA.LOCAL\Publico'; marco 'Reconectar', rotular como 'Pastas Publicas', letra da unidade coloco 'F:' 
+
+agr volto na GPO e botao direito na politica 'NameSpace_publico' e deixo como 'Imposto' so pra ter certeza q será aplicado; 
+
+agora, ao entrar na maquina do usuario em algum usuario do dominio 'empresa.local', verá q terá o mapa de unidade 'Pastas Publicas', onde teremos lá as 4 pastas que podem ser navegadas pelo usuario, sem q ele saiba q estejam em servidores diferentes. 
+
+/////////////////
+
+Replicação DFS - 
+E se um servidor cair?
+Faremos com que, todo arquivo que estiver no SERVIDOR1, mandemos pro SERVIDOR2. Todo arquivo q estiver no SERVIDOR2, mandemos pro SERVIDOR1; 
+
+No servidor1, vamos no 'C:\' e criemos as 2 pastas que estavam no servidor2: Planilhas e Geral; não há necessidade de vc compartilhar as 2 pastas. já vai encontrar a pasta sem o compartilhamento; 
+
+no 'servidor2', nno 'Novo Volume' de unidade 'Y:\', crio as 2 pastas que estavam no 'servidor1'. as pastas nao precisam ter o mesmo nome da origem, é só pra questão de organização. vou em 'adicionar funçao e recurso', e tenho q instalar o 'DFS Replication', q está no SERVIDOR1 e no SERVIDOR2; 
+
+Feito as instalaçoes, no meu servidor1, vou em ferramentas > gerenciamento DFS > botao direito em 'Replicação' > 'Novo grupo de replicação' > posso escolher se quero 'grupo de replicaçao multiuso' ou 'grupo de replicaçao para coleta de dados' q é para backup; escolhemos 'multiuso' > avanço > nome do grupo de replicação: 'Servidor1-Servidor2' > membros do grupo é 'servidor1' e 'servidor2' (digito os nomes e verifico-os) > seleciono a topologia de 'malha completa' > depois é a parte do agendamento, devemos indicar se será continuo ou agendada. vamos escolher 'replicar continuamente' e largura de banda: 'completo'. > avanço e seleciono o membro primario como 'SERVIDOR1' (pq vai pegar do SERVIDOR1 e vai enviar para o SERVIDOR2) > Adicionar as 'pastas a serem replicadas' : no caminho, clicamos em 'procurar', vamos em 'c$' > documentos. e depois em 'c$' > imagens. cliquemos em 'avançar'. > em 'caminho local de documentos em outros membros', cliquemos em 'editar', clico em 'habilitar' e digito o caminho (y$ > Documentos) > avanço e faço a mesma coisa para 'caminho local de imagens em outros membros' > avanço e crio. 
+
+agora, botao direito em 'replicaçao' e façamos novamente, mas do 'Servidor2-Servidor1', isto é, do servidor2 para o servidor1. devemos, então, apenas inverter para agora 'planilhas' e 'geral'. avanço da mesma maneira, qd chegar em 'membro primario' seleciono 'SERVIDOR2' (pq vai enviar do servidor2 para o servidor1); > em 'pastas a serem replicadas', clico em adicionar, vamos no caminho e escolhemos: em 'y$' e escolho 'Planilhas' e depois repito o processo para 'Geral'; 
+
+//////////////
+
+Testando a replicação - 
+Ao criar arquivos no C:\Documentos do 'SERVIDOR1', ao ir no Servidor2 e ir no Y:\Documentos, verá q todos os arquivos criados foram replicados; 
+
+///////////////////
+
+Encrypting File System (EFS) - 
+Digamos que eu tenha um arquivo que eu preciso utilizar no meu dominio, ou seja, preciso q esteja compartilhado, logico, apenas pro Administrator, mas quero criar uma camada a mais de segurança pra ter certeza que apenas o Administrator terá acesso ao arquivo. entao, vou criar uma criptografia, onde somente o administrator terá a chave para leitura destes arquivos. só como teste vou criar uma pasta compartilhada, mas o ideal é, lógico, q a pasta fosse compartilhada somente para o administrador. 
+
+no Servidor1, vou no C:\ , crio uma pasta chamada 'Senhas' > botao direito, propriedades > Compartilhamento > compartilhamento avançado > seleciono 'compartilhar a pasta' > permissoes > e vou colocar 'Domain Users' so para fins de teste (mas o ideal, lembrando, é q fosse somnete para o Administrator);  
+
+agora, adicionando camada de segurança é criptografando a pasta. botao direito nela > propriedades > geral > avançados > criptografar o conteudo para proteger os dados > 'ok' e 'ok
+
+para visualizar as pasta criptografadas, no 'C:\' vou em 'Exibir', Opções > 'Alterar opções de pasta e pesquisa' > modo de exibiçao > seleciono 'exibir arquivos ntfs criptografados ou compactados em ...', agora 'ok'; agr, as pastas criptografadas ficarão com o nome de 'verde'. 
+
+dentro da pasta, crio um txt chamado 'Minhas Senhas' > edito ela e escrevo algo nela e salvo. 
+o arquivo estará criptografado, e o dono do arquivo é o 'Administrador', entao somente ele terá o acesso. 
+para fazer isso para o usuario, teria que fazer o mesmo procedimento, porem na maquina do usuario. 
+
+ao abrir as proriedades do arquivo criado > avançados... > detalhes > verá quem criou o arquivo etc. 
+
+se eu tentar acessar esse arquivo a partir de uma maquina de usuario, dará erro ao tentar abrir o txt. 
+
+//////////////
+
+Backup de arquivos pastas/volumes específicos - 
+Vamos especificar algumas pastas do servidor2 e enviar para o servidor1 para backup caso eu precise desses arquivos para mim, assim poderei restaurar a partir do servidor1.
+
+Vou no servidor1, vou na unidade U: (Uploads E:), crio pasta chamada 'BKP', ativo o compartilhamento dela, nome do compartilhamento será bkp$ (oculto), e a permissão será total e apenas para o Administrator; 
+
+Agora, vou no servidor2, preciso instalar serviço de backup. adicionar funçoes e recursos > avanço/pulo ate chegar na parte de 'recursos' e seleciono 'Windows Server backup'.
+apos isto, no servidor2 ainda, ferramentas > backup do windows server > vou em 'backup local'. na direita posso clicar em 'agendamento de backup' ou clicar em 'backup unico'. vou em 'backup unico' > seleciono 'opçoes diferentes' > servidor completo (recomendado) ou personalizar, o completo será backup completo do servidor, se eu perder o servidor posso restaurar o servidor todo. faremos backup personalizado, pois indicaremos as pastas que iremos fazer o backup. vamos em 'personalizar' > Adicionar itens > vou selecionar 'Y:\' para pegar o disco inteiro para fazer backup; > o destino, poderá ser unindade local, ou poderá ser para uma pasta compartilhada remota q é nosso caso > especifiquemos a pasta remota que será: "\\SERVIDOR1\bkp$", e podemos herdar os controles de acesso ou não, o ideal é que sim; 
+
+agora, ao terminar, ao ir no servidor1 e ir na pasta 'BKP' q criamos, terá lá o backup do servidor2 da unidade Y: q fizemos. 
+
+/////////////////
+
+Restauração de backup - 
+
+Agora, vamos resturar o backup feito; 
+
+vou no servidor2, vamos em 'backup do windows server' em 'ferramentas' > clico em 'recuperar...' > o 'ponto de partida' é de onde será feito o backup, 'este servidor' é se o backup for local, q nao é o caso, entao vamos em 'um backup armazenado em outro local'  > especificart tipo de local, boto em pasta compartilhada remota > especifico a pasta remota: \\SERVIDOR1\bkp$ > posso selecionar o tipo de recuperação, se quero recuperar 'arquivos e pastas', etc. seleciono 'volumes' para ser o volume inteiro > seleciono o volume Y:, e o volume de destino é 'Y:'. se tiver algo no Y: de destino, vai substituir. 
+
+/////////////////
+
+Backup do servidor - 
+Vamos usar a unidade W: do servidor2.  Vamos lá em ferramentas > backup do windows server > backup local > na direita, 'backup unico' > opçoes diferentes e 'ok' > servidor completo e dou ok, pq farei backup completo do server > tipo de destino será 'unidade local' q é nosso caso, pois salvaremos no W:, ou se for em outro servidor, coloquemos 'pasta compartilhada remota' > coloquemos para a unidade W: > confirmemos.
+
+feito isto, deu certo; o backup do servidor2 estará na unidade W:.
+
+NÃO FIZ ISTO POIS É GRANDE O SERVIDOR. 
+
+/////////////////////
+
+Restauração do servidor - 
+Digamos q eu tenha q recuperar o backup, seja em um servidor diferente ou até mesmo no mesmo servidor (caso eu tenha formatado ele, etc); 
+
+Criemos uma nova maquina virtual no virtualbox q simule a restauraçao do servidor; 
+
+Em 'armazenamento', coloque o ISO do windows server, e coloquemos a disco em 'controladora IDE' o DISCO de Backup q foi criado antes.
+
+ao acessar a maquina virtual, pedirá opçoes como 'recuperaçao do sistema', escolha esta opçao, em seguida você escolha o disco que é reconhecido. confirme os dados e vai seguindo. 
+
+///////////////////
+
+Backup agendado - 
+
+Basta ir lá na ferramenta 'backup do windows server', na direita vá para 'Agendamento de backup...', avance e escolha se quer backup do servidor completo ou personalizado (escolha as pastas a se fazer backup), em seguida escolha as unidades que voce quer fazer o backup; depois especifique o horario do backup e quantas vezes; > depois especifique o tipo de destino (fazer backup em disco rigido, rede compartilhada, em volume etc, escolheremos 'rede compartilhada') > Local da pasta compartilhada: \\Servidor1\bkp$ (que tá lá no Uploads U:), e depois coloquemos um usuário que tem a permissão para fazer este backup, no caso, colocamos o Administrator e a senha. 
+
+após isto, o backup estará agendado; 
+
+////////////////////
+
+Criando um conta no Microsoft Azure (Serviços de computação em nuvem) - 
+
+Fazendo backup fora da infraestrutura. é um datacenter externo. as vezes tem um custo menor que servidores, se for volume pequeno vale a pena, a não ser q tenha q usar uma largura de banda alta. 
+
+ao pegar o azure, voce escolhe a capacidade. ao escolher capacidade de volume de 10GB, e fazer 60 operaçoes (60 backups) no mês, o valor é pequeno ( = 6 reais).
+
+façamos o teste gratuito. depois, vamos criar um repositorio e vincular o repositorio a um agente de backup; 
+
+////////////////
+
+Configurando o agente de backup - 
+No gerenciador do servidor (no servidor1 mesmo), temos que desativar a parte de 'configuraçao de segurança aprimorada do IE' pra poder navegar pela internet; assim, vamos acessar o site: portal.azure.com/home 
+
+coloquei login e senha do gumadrugadao mesmo; 
+
+abramos a parte de 'criar um recurso' e procuramos por 'backup and site recovery (OMS)' 
+
+pulei desta parte pois não achei este recurso a criar; 
+
+//////////////////////
+
+Servidor Web (IIS) / DNS - 
+
+Instalação do Web Server -
+
+digamos que voce precise instalar uma intranet para que os funcionarios consultem ferias, quando irá receber 13o etc. o usuario acessará via browser, obviamente. para que as requisiçoes via browser sejam aceitas via servidor, o servidor retorne um site por exemplo, devo instalar um serviço chamado IIS, q é um serviço da microsoft para servidores WEB, similar ao linux qnd vc usa o apache q é o servidor web padrão do linux. 
+
+vamos fazer no servidor2, por exemplo. 
+adicionar funçoes e recursos > instalar funçao e recurso > servidor2 > instalo web server (IIS) > nao quero instalar outro recurso (recurso adicional) > nao quero instalar serviço de funçao a mais > confirmo e instalo. 
+
+instalou.
+
+qualquer requisiçao usando o protocolo HTTP para este servidor, ele irá responder, dependendo se a requisiçao for um site por exemplo, ele irá responder esse site para o cliente q fez a requisiçao via HTTP. 
+
+inicialmente, posso acessar esse servidor via IP ou via nome DNS. nome DNS no caso seria: Empresa2.EMPRESA.LOCAL
+
+ao acessar o win10 de usuario, ao acessar: http://192.168.100.11/ , verá q irá mostrar o IIS.
+
+se eu acessar http://servidor2.empresa.local/ , ele tbm irá redicionar para o servidor (IIS)
+
+mas e se eu quiser usar tipo 'intranet.servidor2.empresa.local' para redirecionar para o site do servidor? teria q mexer nas configuraçoes de DNS.  
