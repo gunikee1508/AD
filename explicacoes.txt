@@ -1284,3 +1284,439 @@ ao acessar o win10 de usuario, ao acessar: http://192.168.100.11/ , verá q irá m
 se eu acessar http://servidor2.empresa.local/ , ele tbm irá redicionar para o servidor (IIS)
 
 mas e se eu quiser usar tipo 'intranet.servidor2.empresa.local' para redirecionar para o site do servidor? teria q mexer nas configuraçoes de DNS.  
+
+//////////////
+
+Configurando os arquivos do site - 
+
+Ao entrar em http://servidor2.empresa.local, vemos q ta funcionando o web service. 
+
+O dev entregou os arquivos pra vc, e agora esse arquivo deve ser inserido no servidor para q seja mostrado a todos usuarios da empresa. Como fazer?
+
+Vamos abrir o arquivo da aula: https://drive.google.com/open?id=1sEVtf9ml3EeSwP4acXZgIyuvPgkVCCRB
+
+lá tem 'site1' e 'site2'. vamos copiar os arquivos dentro de 'site1'. 
+
+qd vc instala o IIS, dentro de C: vc tem uma pasta chamada 'inetpub'. nela, temos uma pasta chamada 'wwwroot', q é a pasta dos arquivos do servidor web. caso tenha arquivo lá padrao, pode excluir. colamos aqui os arquivos que copiamos.
+
+temos o 'index' q é o arquivo principal, q será exibido sempre q a requisiçao do servidor for chamada. 
+
+agora, ao acessar 'servidor2.empresa.local/', irá mostrar o site.
+
+MAS, e se eu quiser q acesse o site atraves de 'intranet.servidor2.empresa.local'? ou por outro dominio? vamos resolver esse problema de resoluçao de nomes. 
+
+/////////////////
+
+Criando um novo host - 
+
+vamos no servidor1, onde temos o serviço de DNS. vamos em 'ferramentas' > 'gerenciador DNS'. lá, teremos '1servidor1' > 'zona de pesquisa direta'>  temos o nosso dominio q é 'empresa.local'.  ao clicar, mostra o que o AD já resolveu para mim de nome. ele adicionou ADM1, SERVIDOR1, SERVIDOR2, etc... mostra os ips tbm, por isso q se eu digitar 'servidor2.empresa.local', ele redireciona para o ip configurado, no caso, 192.168.100.11. 
+
+gostaria que, ao digitar 'intranet.servidor2.empresa.local', tbm fosse redirecionado para o ip configurado para servidor2, no caso, 192.168.100.11,  assim o site sendo exibido. 
+
+como fazer?
+
+clicamos com botao direito > novo host (A ou AAAA) > vamos por nome: 'intranet', nome do dominio: 'intranet.empresa.local', e endereço ip (para qual IP sera redirecionado): 192.168.100.11.
+
+agora clico em 'adicionar host'. 
+
+quero tbm que, ao digitar 'www.empresa.local' tbm seja redirecionado, basta colocar nome: 'www', e o IP para 192.168.100.11 
+
+agora, pra testar a resoluçao de nomes, abrimos o POWERSHELL e digitamos: ping intranet.empresa.local 
+
+se pingar, ta resolvendo o nome.
+
+ping www.empresa.local => se pingar, ta correto. 
+
+agora, e se eu quiser um dominio diferente? tipo: www.minhaempresa.com.br , como fazer? temos que fazer uma nova zona de pesquisa direta. 
+
+/////////
+
+Nova zona de pesquisa direta -
+
+Posso adicionar, sim, novas zonas de pesquisas para que o servidor possa responder às requisiçoes. 
+No servidor1:
+Ferramentas > DNS > zona de pesquisa direta, clico com botao direito em cima de 'zona de pesquisa direta' > 'nova zona' > escolhemos o tipo de zona, será 'zona primaria' pois a zona sera atualizada diretamente aq > depois, escolhemos como deseja que os dados de zona sejam replicados, no nosso caso, temos um unico dominio q é 'empresa.local', então a replicaçao dessa zona DNS será feita pelo dominio 'empresa.local'. se eu tivesse uma floresta com varios dominios, teria q escolher se a replicaçao seria pra floresta inteira ou somente para este dominio. > avançamos. nome da zona: 'minhaempresa.com.br' > permitimos que as atualizaçoes sejam feitas pelo AD, isto é, será mais seguro > e concluimos. 
+
+após isto, foi criado uma nova zona de pesquisa direta no servidor1 (que no caso é nosso servidor primario de resoluçao de nome DNS). qq pedido de resoluçao de qq maquina no meu dominio, qm vai resolver é o SERVIDOR1. 
+
+sempre cheque se os dominios no seu servidor ai criados estão apontando para o lugar correto. 
+
+no dominio q criamos, botao direito > novo host > nome: www, endereço IP: 192.168.100.11, para chamar esse IP qd eu chamar o 'www.minhaempresa.com.br'.
+
+vamos criar outro com nome: 'intranet' e ip 192.168.100.11. 
+
+vms na maquina de usuario, digitamos no CMD: ipconfig /flushdns para atualizar o DNS. agr pinguemos www.minhaempresa.com.br e ping intranet.minhaempresa.com.br 
+
+caso nao pingue, verifique os ips do seu servidor, ou então se o 'windows defender firewall' está ativo (no caso do servidor2 por ex), q pode bloquear o ping. 
+
+agr ao acessar http://minhaempresa.com.br , irá redirecionar para o site que temos lá no SERVIDOR2.
+
+agora, e se no servidor2 eu tiver um outro site q será acessado por outro dominio, como 'empresa.com'? 
+
+como colocar mais de um site no mesmo servidor web?  
+
+////////////
+
+Mais de um site por servidor web -
+
+no servidor2, precisamos ter mais de um site. 
+
+vamos la na pasta padrao do servidor web. C:/inetpub/wwwroot
+
+lá, criamos uma pasta, chamada 'minhaempresa.com.br'. vamos colocar os arquivos de um site lá.
+
+criemos outra pasta chamada 'empresa.com' com outros arquivos de um site. 
+
+agora, como configurar qual site será aberto dependendo de qual dominio será requisitado?
+
+no servidor2 (pq é onde está instalado meu serviço WEB), vamos em 'ferramentas' > gerenciador do serviço de informaçoes de internet (IIS), q é o servidor web > ali, teremos 'servidor2', vamos ali > sites > teremos ali o 'default', q é oq estavamos usando. botao direito em 'sites' > adicionar site > nome do site: minhaempresa.com.br , caminho fisico (será o site q será aberto neste dominio), e indicamos alguma das pastas que criamos. este caminho será exibido quando qual host for chamado? coloquemos em 'nome do host', nome do host: www.minhaempresa.com.br. o 'tipo' será a requisiçao, no caso, 'http', o endereço IP 192.168.100.11, e a porta 80. marquemos 'inicair site imediatamente'. 
+
+repetimos o processo para o outro site, no caso, o nome do site: 'empresa.com', o nome do host será: www.empresa.com (que é o host DNS q vou indicar no meu servidor DNS), e o endereço IP é o endereço do servidor a ser chamado na requisiçao, no caso, 192.168.100.11. 
+
+vamos excluir o default por questao de organizaçao.
+
+agora, vamos no servidor1 (caso o servidor2 tbm seja servidor dns pode ser feito no servidor2). vamos lá no gerenciador DNS > servidor1 > zonas de pesquisa direta > botao direito e nova zona de pesquisa direta > avanço ate chegar 'nome da zona', q será: 'empresa.com'. nesta nova zona, criamos o ponteiro, botao direito > novo host (A ou AAAA) > nome: www, endereço ip: 192.168.100.11 
+
+agora, ao acessar a maq de usuario, abrimos o cmd, dê ipconfig /flushdns , apos isto pingue: ping www.empresa.com , se pingar deu certo ar esoluçao.
+
+ao abrir navegador, ao acessar: www.minhaempresa.com.br redireciona a um site, e acessar www.empresa.com , acessa outro site.
+
+/////////////
+
+Zona de pesquisa reversa - 
+
+criamos nossas zonas de pesquisa direta. 
+
+em alguns casos, principalmente se vc tiver servidor de e-mail no seu dominio/sua rede, é importante q se tenha uma zona de pesquisa inversa. o que ela faz? 
+
+a zona de pesquisa direta converte HOSTS em IPs. A zona de pesquisa inversa converte IP em HOSTS (que chamamos de ponteiro da zona de pesquisa inversa). 
+
+podia-se fazer os comandos a seguinte no servidor2 tbm, mas na AULA ele usou o windows 7. 
+
+se digitar 'nslookup', ele identifica o ip do servidor DNS, mas nao identifica o nome (fica desconhecido). ou seja, qq pesquisa q eu fizer, tipo: 'servidor2.empresa.local', na pesquisa INVERSA ele até sabe quem é (mostra o IP), mas não sabe o nome. 
+
+vamos criar a zona de pesquisa inversa. 
+
+botao direito em 'zona de pesquisa inversa' > nova zona > zona primaria (compativel com o SERVIDOR1 pq é ele q resolve os nomes) > em seguida quem vai replicar é meu dominio 'empresa.local' > é uma zona de pesquisa inversa IPv4 > identificaçao de rede é o IP, no caso: 192.168.100 , avanço > permitimos q o AD faça atualizaçao dinamica.
+
+apos isto, ele criará a zona de pesquisa inversa a partir da minha rede 192.168.100. vamos agora criar meu ponteiro (nosso PTR), botao direito > novo ponteiro (PTR) > endereço IP do host colocamos nosso IP DNS, no caso: 192.168.100.10, nome do host: 'servidor1.empresa.local'. 
+
+os demais hosts das pesquisas diretas, como 'empresa.local', e eu ir nas propriedades do 'ADM1', ao selecionar 'atualizar o registro de ponteiro associado (PTR)', ele ja vai realizar o registro do ponteiro da pesquisa inversa para mim. 
+
+agora, para testar se esta funcionando. voltou la no windows de usuario:
+abre o cmd. digita ipconfig /flushdns
+
+ao digitar nslookup, irá ver que resolveu o nome, então qq pesquisa em seguida q eu fizer, ele saberá o nome, por exemplo: adm1.empresa.local , ele saberá o nome da pesquisa inversa, que no caso é 'servidor1.empresa.local'.
+
+é bem importante isto para servidor de email. 
+
+//////////////
+
+Resolução externa (encaminhadores) -
+
+agora, e se esse servidor nao conseguir resolver o nome? por ex, usuario faz uma pesquisa pelo nome 'www.google.com'? este dominio nao esta no meu SERVIDOR1, ou seja, este site está em um servidor externo na internet. quem vai resolver este nome? a internet possui uma serie de servidores dns que consegue resolver as pesquisas q vc faz normalmente no dia a dia. entao qd vc faz 'www.google.com', é feito uma pesquisa a um servidor DNS, e este servidor mostra qual o IP deste dominio e encaminha pro tal IP. 
+
+se eu der um ping 'www.google.com', vai pingar, e verá o dominio q ta no ip 216.58.222.67, mas este ip nao esta no meu dominio, está fora. quem resolve isto? é o DNS externo, como configuro no gerenciador DNS?
+
+vou no 'gerenciador DNS' > ação > propriedades > encaminhadores > tenho ali cadastrado o 8.8.8.8, q é o padrão do google. temos outros servidores externos DNS. adicionemos por ex o '1.1.1.1', q existe. nesta lista, é prioridade. se o 8.8.8.8 sair fora do ar, quem vai resolver é o de baixo, no caso, '1.1.1.1'. dou 'ok'. ok. 
+
+agora, qualquer nome que for redirecionado para o servidor, e o servidor nao reconhecer, quem vai resolver é o ENCAMINHADOR, ou seja, é o servidor externo de minha rede. 
+
+//////////////
+
+SERVIDOR DE E-mail
+
+Instalemos um software para q tenhamos um serviço de e-mail.
+
+vamos no servidor2 q é onde teremos este software. gerenciar >: adicionar funçoes e recursos > proximo > escolhermos pro servidor 2 > adicionamos o recurso 'SMTP Server', q é o recurso em q posso enviar emails a partir do meu servidor para outro local. no meu caso, realmente quero serviço de e-mail, quero cadastrar os usuarios, cadastrar senha de cada um, e fazer com q esses usuarios troquem e-mail entre si. vale lembrar que, este serviço de email esteja apenas na minha intranet para q, por exemplo, alguem q esteja usando GMAIL pudesse me enviar email p caixa de email do meu servidor, teria q ter IP fixo e este servidor estar acessivel ao IP fixo, e meu dominio 'empresa.local' fosse localizado via DNS externo. nao é nosso caso. nosso email ira funcionar na INTRANET, entre os usuarios do meu dominio. 
+
+vou utilizar um software externo, um software gratuito. para isto, temos q instalar o 'NET FRAMEWORK 3.5 FEATURES', tenho q ter o CD do meu WINDOWS SERVER para ele aparecer. 
+
+-> veja na aula o tutorial para instalar direitinho. 
+
+instalou o hmail server, q é um software gratuito. 
+
+////////////
+
+Configurando o servidor de e-mail - 
+
+ao acessar o hmail server, acessemos no localhost, e o username q é 'administrator'.
+
+cadastremos um novo dominio. (infelizmente este software nao consigo importar meus usuarios do AD, entao todos usuarios do email preciso cadastrar manualmente) > add > domain: empresa.local. 
+
+em 'accounts' > add > address: denilsonbonatti, a senha dele password. cadastremos outro usuario clicando em 'add'. 
+nao ha vinculo entre as contas do AD, pode ser outro nome, etc.
+
+criou outra com address 'administrador'
+
+posso parar o serviço de email clicando em 'stop service' ou iniciar clicando em 'start service'. 
+
+o serviço de e-mail usa 2 portas TCP no servidor, q sao as portas 25 e a porta 10, então tenho q liberar as portas no FIREWALL para meus clientes poderem acessar o servidor. 
+
+vamos no firewall, ative o firewall, libere as portas indo em configuraçoes avançadas > regras de entrada > irá mostrar todas as regras pre configuradas no meu firewall, criemos uma nova regra, nova regra > regra de 'Porta' > protocolo TCP (emails usam TCP, protocolo q exige retorno da informaçao), portas locais especificas: '25, 110' > permiutir a conexao > a regra se aplica ao dominio apenas (nao terei requisiçao externa a essas portas, ent liberarei as portas apenas ao dominio) > nome: 'E-mail'.
+
+//////////////
+
+Testando o envio e recebimento de e-mails - 
+loguemos na maquina de usuario.
+
+vamos usar um software de email, na aula ele usou o'Thunderbird', ao acessar, coloca o email: denilsonbonatti@empresa.local, a senha é a senha q cadastrei no servidor (na conta dele do servidor de e-amil.)
+
+recebimento: POP3, q é o padrao la do serviodor. nome do servidor: servidor2.empresa.local (q foi onde instalei, foi no servidor2) > concluído. 
+
+agr, envia um email para por exemplo, administrador@empresa.local.
+
+agora, loga com este outro usuario e veja se o email chegou. 
+
+verá q o email chegou.
+
+////////////////
+
+DHCP / PROXY
+
+Instalando o serviço DHCP -
+
+DHCP é basicamente um serviço de entrega de IPs para os serviços que fazem requisiçao via este protocolo. esta requisiçao pode ser feita tanto por notebooks, celulares, tvs, qualquer dispositivo q precise acessar a rede (wi-fi ou cabeada). qd o dispositivo precisar da requisiçao, ele enviará um IP .
+
+até agora, usamos IP fixo. se eu tivesse 300 maquinas na minha rede, eu teria q colocar ip por ip em maquina por maquina, se torna inviavel. é inviavel em rede wi-fi tbm. 
+
+serviço DHCP deve ser usado, salvo em maquinas q precisam de IP fixo, como impressoras, servidores, etc. 
+
+na maquina do usuario, por ex:
+nas configuraçoes de rede, selecionemos 'escolher endereço ip automaticamente'.
+
+agora, vou no servidor1, e instalo serviço DHCP. 
+
+gerenciar > adicionar funçoes e recursos > instalar recurso no servidor1 > 'funçoes do servidor': escolho 'DHCP SERVER' > nao adicionarei recursos adicionais > instalo.
+
+apos isto, aparecerá para configuraçao dhcp adicional, no caso ira aparecer "configuraçao de DHCP concluida', clico neste texto > so preciso dar autorizaçao para o servidor se tornar servidor DHCP > em autorizaçao, posso usar as credenciais do usuario (no caso, Administrator). so tome cuidado para nao ter 2 servidores DHCPs na mesma rede, q pode dar conflito, pois nao saberá quem ta entregando IP para qual maquina > confirmo e concluo.
+
+ferramentas > DHCP > nao temos nenhum roteador entregando IP na faixa 192.168.100.x, vamos criar nosso ESCOPO DHCP em seguida. 
+
+/////////////////
+
+Criando um escopo - 
+vou no 'DHCP', vou em 'servidor1.empresa.local' > tenho possibilidade de criar escopo de entrega IPV4 ou IPV6, no caso, faremos IPV4 > botao direito nele > novo escopo > avanço > nome do escopo será: Rede 192.168.100.0, e descriçao 'empresa.local', q será as maquinas q irao receber o IP > avanço, e teremos o inicio de escopo q é endereço ip e temos ip final. se eu começar a entregar por 192.168.100.1, e final 192.168.100.254, terei problemas, pq se eu tiver, por ex, eu tenho servidores q tem o IP '192.168.100.10' e '192.168.100.11', então os 2 IPs serão sobrepostos na entrega para os terminais (isto é, para os hosts q fizerem a requisição). logico, posso remover uma faixa de entrega, mas o ideal é que numa rede eu deixe umas maquinas q precisem de IP fixo (como servidores, impressoras, cameras de tv, etc). entao vou entregar (endereço de IP inicial) por ex, a partir de: 192.168.100.50, e até (endereço de ip final) 192.168.100.254.
+
+o comprimento será 24 (q é a máscara de sub rede), no caso, 255.255.255.0 
+
+avanço > verei que terei para adicionar exclusoes e atraso. terei 2 terminais q terão IP fixo pq irei usar para acessar remotamente o servidor. entao vamos adicionar a faixa. endereço de IP inicial: 192.168.100.60 e final 192.168.100.61. e adiciono. Os IPs não serão entregues entre os que estao nessa faixa. avanço > duraçao da concessão: por ex, numa rede cabeada pode deixar para o máximo (8 dias). posso aumentar a concessão ou reduzir. oq é isto? uma maquina recebeu um IP. esta maquina terá este IP por até 8 dias. numa rede cabeada ok, o ideal é q na rede cabeada nao se tenha requisiçoes diarias pq pode sobrecarregar o servidor DHCP. agora, numa biblioteca é ruim, pq o uso de um celular numa biblioteca pode ficar 2 horas, 2 dias... o cel pode sair e o IP ficará preso.
+
+avanço > configurar opçoes de escopo e escolho pra configurar par este escopo agora sim > o roteador (gateway padrao): digamos que seja 192.168.100.1, pode ser roteador para rede externa, para rede wi-fi, etc, vamos colocar por exemplo 192.168.100.1 > avanço. em 'o servidor de nomes e dns', teremos o servidor, posso adicionar um servidor adicional q tenha serviço DNS (por ex, 192.168.100.11, mas nosso servidor2 não tem serviço DNS).. o servidor tem q ter serviço DNS. posso adicionar servidor de DNS externo, para resolver DNS externo, vamos adicionar '8.8.8.8'.
+
+avanço > serviço WINS era de antigamente, nao vamos usar > ativo o escopo agora > e concluo. 
+
+agora, o escopo será criado e em funciuonamento. em 'concessoes ativas', teremos algumas concessoes ativas, vamos ver para lá. 
+
+vamos numa maquina de usuario q tem config de IP automatico, e ir em 'cmd' digitar 'ipconfig /all' verá as configuraçoes.
+
+agora, ao ir no servidor, atualiza as 'concessoes ativas', e verá q terá uma concessão ativa. pode excluir ela se quiser clicando com botao direito na concessao. 
+
+///////////////
+
+Serviço de Failover -
+
+Em um rede muito grande, se vc tiver grande qtd de entregas de IPs, é importante q vc distribua a carga dessa entrega com outro servidor. se vc tiver 500 maquinas, o processamento do seu servidor pode ficar sobrecarregado. e se caso o servidor caia, vc perde todo a entrega desses IPs. em botao direito no seu 'escopo' > exibir estatisticas, vc ve o total de endereços, quantos em uso, quantos disponiveis, etc. 
+
+como vou dividir a carga com outro servidor, (servidor2 no caso ), tenho q instalar o serviço DHCP no servidor2.
+
+no servidor1, no escopo > botao direito > configurar failover > aparecerá 'escopos dispinoniveis' e escolho o escopo q irei selecionar este recurso > avanço, e coloco 'servidor2.empresa.local' q é o servidor q assumirá a bronca > avanço, e o nome da relação será 'Failover Servidor1 - Servidor 2', o prazo de entrega é um prazo de entrega especial caso o failover entre em açao, isto é, quanto vai valer cada entrega? posso colocar as horas. voltando o servidor1, volta a ser oq é definido no escopo. e qual o percentual de balanceamento de carga? 50% e 50%, ou posso colocar 'intervalo de alternancia de estado' e colocar 80% em um e 20% em outro. no caso, colocaremos '50% e 50% nos 2 servidores'. ou posso colocar o modo 'Espera Ativa', que é: o servidor2 só irá assumir caso o servidor1 cair. mas como vc ja tem um servidor funcionando, o ideal é q vc coloque 'balancear carga'. posso habilitar 'autenticação de mensagem', e coloco uma senha ali. 
+
+avanço e ok.
+
+/////////////
+
+Testando o serviço de Failover - 
+
+vamos no servidor1 vamos desligá-lo.
+
+agora, na maquina do usuario, façamos nova requisiçao DHCP. desativo a placa de rede e ativo de novo, e vai buscar o servidor DHCP. 
+
+ao dar ipconfig /all verá q o novo servidor dhcp é 192.168.100.11.
+
+///////////////
+
+Instalação do SquidNT - 
+
+O serviço de proxy é uma forma de canalizar o tráfego de internet na sua rede. canalizando o trafego de internet, tenho mais segurança, sabendo assim quais locais esse usuario acessou através dos logs (existem alguns softwares especificos pra ver o qt o usuario usa internet, etc). Posso usar o proxy tbm para restriçoes, tipo se o usuario nao puder acessar youtube, etc. 
+
+Vamos usar um software chamado SQUID. no SERVIDOR1, vamos no site: squid.diladele.com/ , lá temos o arquivo MSI q é o arquivo de instalação. 
+
+instalo o SQUID. 
+
+temos o 'Squid Server tray', q é oq instalou. na barra de tarefas, vamos em 'Open Squid Configuration', e abrirá o 'squid.conf'. vamos ter q indicar qual rede vo ufiltrar, no caso, é 192.168.100.0. vamos colocar # nas redes em 'acl localnet src [...] desnecessarias, e coloquemos apenas: acl localnet serc 192.168.100.0/24
+
+embaixo temos as permissoes de portas na internet. vamos deixar todas. 
+
+mais abaixo temos permissao e proibiçao de acesso. 
+
+temos a porta para os clientes acessare4m o servidor, q é 3128. 
+
+abaixo, teremos os servidores DNS, em 'dns_nameservers'. coloquemos: 'dns_nameservers 192.168.100.0 8.8.8.8', e 8.8.8.8 q é o servidor de DNS externo padrão (q é o do Google); 
+
+salvo. 
+
+agora, vou no Squid Terminal.
+vamos verificar se meu arquivo de configuraçao tem algo de errado, digito: squid -k parse 
+
+caso tenha algo errado, ele dirá. 
+
+startando serviço, digito: squid 
+
+qualquer alteraçao q eu tenha feito, digito: squid -k reconfigure 
+
+e digito 'squid' para startar o serviço. 
+
+agora, vamos ver se o firewall liberou a porta para o serviço.
+
+vamos nas 'Regras de Entrada' do firewall, verá q terá lá 'Squid Cache Server', ou seja, o proprio squid criou uma regra para liberar as portas de entrada e também para qualquer outra porta q ele vá utilizar. 
+
+////////////////
+
+Configuração dos clientes do proxy - 
+
+Entremos no clinete da minha rede (maquina de usuario). vejamos q nao temos acesso a internet, ou seja, nao conseguimos acessar a internet. vamos usar o proxy, pois o servidor em q configurei o proxy tem acesso a internet. então, além do FILTRO, ele pd ser usado como fonte de acesso à internet também. 
+
+nas configuraçoes do navegador, vou em 'congiuraçao da rede local (LAN)' e seleciono 'servidor proxy', para 'usar um servidor proxy para a rede local'. o endereço é o IP: 192.168.100.10,. e a porta: 3128, q é a porta configurada la no squid.
+
+se voce tem 300 maquinas na empresa, nao dá pra fazer isso manualmente em todas elas. futuramente faremos via GPOs. 
+
+/////////////////////
+
+Proibindo acesso a determinados domínios - 
+
+Digamos q eu queira proibir q o usuario acesse youtube, facebook, etc. faremos via proxy. 
+
+vou no open squid configuration (squid.conf), procuremos por 'INSERT YOUR OWN RULE(S)', e coloquemos uma ACL (access list). 
+coloquemos para proibir o dominio de destino:
+
+acl bloqueados dstdomain www.facebook.com www.youtube.com www.twitter.com
+http_access deny bloqueados !localhost
+
+agora, criado a acl, o que fazer com ela? com o 'http_access deny' eu bloqueio, menos para o administrador, no caso, o localhost.
+
+vou no cmd: squid -k parse 
+squid -k reconfigure 
+squid 
+
+agr, na maquina de usuario, ao tentar acessar 'www.youtube.com', dará erro. 
+
+se é um usuario esperto, vai nas configuraçoes de proxy do navegador e tira acesso ao proxy; 
+
+//////////////////
+
+Configuração do proxy via GPO -
+
+vamoss criar uma gpo q vai aplicar as configuraçoes do proxy aos usuarios que eu definir. 
+existe no GPO uma politica especifica para criar proxy, mas pode ser q vc tenha q faça para cada navegador também. entao se torna cansativo. o jeito mais fácil/ideal é criar um SCRIPT. 
+
+o script está na AULA. q é este:
+
+dim oShell
+set oShell = Wscript.CreateObject("Wscript.Shell")
+
+
+oShell.RegWrite "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ProxyEnable", 1, "REG_DWORD"
+oShell.RegWrite "HKCU\Software\Microsoft\Windows\currentVersion\Internet Settings\ProxyServer", "192.168.100.10:3128", "REG_SZ"
+
+Set oShell = Nothing
+
+onde eu vou entrar no registro da maquina do usuario, habilitarei o proxy (1), e depois no proxyserver indicarei quem é o servidor proxy e a porta correta (192.168.100.10:3128). 
+
+no windows server (Servidor1), criaremos um txt, salvaremos este script e o nome será: 'proxy.vbs', salvemos em 'documentos'. 
+
+se eu executar o script, verá q proxy será inserido automaticamente no navegador (será feito em qq navegador em q o usuario tiver).
+
+agora, como criar a politica?
+quero que seja apenas para os usuários do ADM (pode ser q vc queira para todos do domínio, basta criar a GPO no dominio 'empresa.local'). vamos no 'gerenciamento de politica de grupo' > unidade organizacional 'Adm' > botao direito e 'criar nova gpo', nome: Script Proxy > botoa direito na GPO > editar > configuraçoes do usuario > politicas > configuraçoes do windows > scripts (Logon/Logoff). o script tem que ser aplicado quando o usuario fizer logon, nao quando a maquina ligar. > clico 2x em 'Logon' para ir nas propriedades, ao clicar em 'mostrar arquivos' mostra a pasta compartilhada q será criada. neste local, colo lá o arquivo 'proxy.vbs'. agora, preciso adicionar, volto la nas 'propriedades de logon', clico em 'adicionar', procuro pelo 'proxy.vbs' e adiciono. sem parametro adicional de script, e confirmo tudo em seguida. 
+
+agora tá aplicado. para ter certeza, deixo o gpo 'script proxy' como 'IMPOSTO' (botao direito > imposto). 
+
+agora vou na maquina de um usuario da UO 'ADM', cmd: gpupdate /force , e faço logoff e login do usuario (qq usuario) 
+
+abro o Chrome, verá q as configuraçoes de proxy estarao aplicadas. no windows também. 
+
+mas o usuario ainda pode trocar o proxy nas configuraçoes de proxy. vejamos em seguida; 
+
+//////////////////
+
+Proibir o usuário de trocar o proxy - 
+
+via gpo. podiamos fazer no script do proxy, mas vamos criar outra GPO para maior controle.
+na UO 'ADM' > criar nova GPO > 'Proibir acesso ao proxy' > editar > configuraçao do usuario > politicas > modelos adminmistrativos > componentes do windows > internet explorer > 'impedir a alteraçao de configuraçao do proxy', clico 2x para ir as propriedades > e habilito. assim usuario n pode mais alterar o proxy. confirmo.
+
+deixo a GPO como 'Imposto'. 
+
+agora, o usuario nao poderá mais alterar o proxy; 
+
+////////////////
+
+Relatório de acesso ao proxy (SARG) -
+
+Com o proxy em execuçao, toda a atividade dos clientes nesse proxy é armazenada e pode ser consultada para que eu saiba e determinar o que estes clientes estao fazendo, se algum site foi bloqueado pelo proxy, etc. 
+
+no servidor em q ta instalado o Squid, vou no 'C:/Squid/var/log/squid', e terá um arquivo chamado 'access', q é onde fica armazenado qualquer operaçao do cliente neste proxy. posso abrir, p é um arquivo de texto. 
+
+ao abrir, verá q terei toda navegaçao do usuario, via IP.  pode ser pouco confuso. posso usar um software para que fique mais facil. um desses softwares é o 'SARG', que ele pega este arquivo de log, e transforma em uma pagina HTML para uma visualizaçao melhor. 
+
+na aula, temos txt em que encontra o link de download, etc. 
+ 
+ao baixar, verá q dentro do 'sarg' q é zip, temos uma pasta chamada 'sarg', vamos colocá-la na C:/
+
+naquele arquivo 'txt' da aula, verá q terá onde está o log do SQUID para q eu possa formata-la (access_log), e onde irá gerar a saida (output_dir), se neste relatorio vou inserir os IPs dos usuarios (user_ip), e se quero gerar um relatorio de download/tentativa de download (download_suffix); em seguida temos o local de execuçao do proprio site (em cd).
+
+vamos abrir o bloco de notas, vamos na unidade C:/sarg/etc, e digito a procura por '*' para aparecer todos, e abramos o 'sarg.conf'. ao abrir, vamos descomentar a 'language' e coloco 'Portuguese'. 
+
+procuro por 'access_log', q é onde esta o arquivo de configuraçao do squid. coloquemos o padrao dele, q é: C:/Squid/var/log/squid/access.log 
+
+procuro agora por 'output_dir' para onde será gerado, C:/sarg/report
+
+procuro agora por 'user_ip', para identificar o IP do usuário, coloco 'yes' e descomento se tiver comentado. 
+
+procuro agora por 'download_suffix', descomento, e terá as extensões que desejo que sejam armazenadas no relatorio.  
+
+apos indicar todos os itens de parâmetros, vamos no CMD no servidor, digitamos: cd/Sarg/sbin 
+
+vai para C:/sarg/sbin
+
+e digito 'dir' para ver oq tem no diretorio, e digito agora 'sarg'
+
+verá q vai gerar um relatorio. 
+
+vamos agora la no c:/sarg/report, terá la um 'index' do relatório, de modo visual. 
+
+clico no periodo, tenho lá os usuarios do meu dominio, quantas bytes utilizados no dia, tempo de uso no dia, se eu clicar no Ip do usuario mostra todos os sites q visitou, se houve algum bloqueio (aparecerá NEGADO), etc.
+
+para gerar outro relatorio, basta ir novamente no cmd, digitar 'sarg', e irá gerar novo relatorio. 
+
+/////////////
+
+Instalando o Hyper-v no Windows Server 2019 -
+
+trabalharemos agora com virtualização. é necessario maquina real. 
+
+teriamos q ter um 'servidor3', real.
+
+no servidor, vamos instalar o HYPER-V.
+
+vamos em 'adicionar funçoes e recursos' > instalando uma funçao por agora > instlaando no servidor3 > escolhemos a funçao (server roles )'hyper-v'. o HYPER-V é um virtualizador profissional com recursos para maquinas virtuais (difernete do virtualbox q é mais doméstico ) > sem recurso adicional > perguntará se querei criar um switch virtual, mas vamos criar manualmente no hyper-v > perguntará sobre 'live-migration', q é um recurso que posso mover maquinas virtuais entre servidores sem desligar as maquinas virtuais. nao vamos usar no curso > em 'locais padroes' serão os locais onde teremos os discos e maquinas virtuais. é importante em q sejam locais diferentes do sistema operacional, vamos deixar padrão > instalo. 
+
+reincio o servidor. verá q o 'HYPER-V' foi instalado. caso precise usar, vamos em 'ferramentas' > hyper-v, e ai posso manusear minhas maquinas virtuais. 
+
+/////////////
+
+Instalando o Hyper-v no Windows 8 / 8.1 /10 - 
+deve ser o Win Pro.
+adicionar/desativar funcionalidades, no painel de controle. e instalo.
+
+/////////////
+
+Criando um disco virtual -
+
+Digamos q eu tenha um supermercado, e eu tenha 10 caixas, e nesses 10 caixas eu nao tenha um PC completo (memoria, placa de video, etc). Eu tenha um terminal chamado Thin Client (conhecido como Terminal Burro) com processamento menor, e o sistema operacional será rodado em uma maquina virtual em um servidor, q no nosso caso será o HYPER-V. assim, todo processamento será feito pelo servidor, deixando para os terminais somente o acesso remoto a maquina virtual; podem acessar nao somente pelo thin client, mas tbm por qualquer outro dispositivo q tenha acesso remoto, por exemplo, pode ser via aplicativo, ou outra maquina, etc. 
+
+mas a intençao é criar varias maquinas virtuais, onde terei terminais burros para acesso às minhas maquinas virtuais. 
+
+vou no servidor onde tem o hyper-v, vou em 'Hyper-V manager' > botao direito em 'servidore3' (Q é o nome do meu servidor) > novo > disco rigido virtual > next e vai pedir o formato do disco. escolho o formato 'vHD'. vhdx suporta ate 64tb mas so aceita win server 2012 pra cima. vhd set é somente para backup > irá pedir o tipo de disco, se é fixo (se é 50GB irá gerar arquivo de 50gb. desvantagem é q irá demorar para gerar os 50gb, e já irá ocupar os 50gb do disco fisico. a vantagem é q como o disco ja foi ampliado, vai usar menos processamento na hr de salvar os arquivos no disco), temos o 'dinamico' (ex: colocamos tamanho maximo 50GB, e o tamanho vai ocupando conforme vai sendo ocupado. processamento mais lento mas tem mais economia no disco físico); temos o 'differing' (pai e filho), por ex, se eu crio disco pai de 5GB, se os proximos discos forem de 6GB, as informaçoes diferentes serão adicionadas em um filho. no nosso caso, iremos criar um DINAMICO > especificamos o nome do arquivo, no caso: "Windows 7", e teremos o local onde o arquivo será salvo > colocarmeos o tamanho, no caso, teremos o tamanho maximo, COLOQUEMOS 50gb. Posso colocar uma copia, isto é, copia de um disco ja existente > avanço e avanço. 
+
+agora, o disco já está criada. agora criaremos o comutador. 
