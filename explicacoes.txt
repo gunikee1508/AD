@@ -1720,3 +1720,7 @@ mas a intençao é criar varias maquinas virtuais, onde terei terminais burros par
 vou no servidor onde tem o hyper-v, vou em 'Hyper-V manager' > botao direito em 'servidore3' (Q é o nome do meu servidor) > novo > disco rigido virtual > next e vai pedir o formato do disco. escolho o formato 'vHD'. vhdx suporta ate 64tb mas so aceita win server 2012 pra cima. vhd set é somente para backup > irá pedir o tipo de disco, se é fixo (se é 50GB irá gerar arquivo de 50gb. desvantagem é q irá demorar para gerar os 50gb, e já irá ocupar os 50gb do disco fisico. a vantagem é q como o disco ja foi ampliado, vai usar menos processamento na hr de salvar os arquivos no disco), temos o 'dinamico' (ex: colocamos tamanho maximo 50GB, e o tamanho vai ocupando conforme vai sendo ocupado. processamento mais lento mas tem mais economia no disco físico); temos o 'differing' (pai e filho), por ex, se eu crio disco pai de 5GB, se os proximos discos forem de 6GB, as informaçoes diferentes serão adicionadas em um filho. no nosso caso, iremos criar um DINAMICO > especificamos o nome do arquivo, no caso: "Windows 7", e teremos o local onde o arquivo será salvo > colocarmeos o tamanho, no caso, teremos o tamanho maximo, COLOQUEMOS 50gb. Posso colocar uma copia, isto é, copia de um disco ja existente > avanço e avanço. 
 
 agora, o disco já está criada. agora criaremos o comutador. 
+
+///////////////
+
+Criando um comutador virtual
